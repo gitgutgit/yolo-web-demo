@@ -551,11 +551,7 @@ def on_frame_capture(data):
 # ==========================
 
 if __name__ == "__main__":
-    print("✅ Loading YOLO model:", YOLO_MODEL_PATH)
-    yolo_model = YOLO(YOLO_MODEL_PATH)
-
-    print("✅ Loading PPO model:", PPO_MODEL_PATH)
-    ppo_agent = load_ppo_for_web(PPO_MODEL_PATH)
-
-    # Flask+SocketIO 서버 실행
-    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
+    import os
+    port = int(os.getenv("PORT", 5000))
+    print(f"🚀 Running in development mode on port {port}")
+    socketio.run(app, host="0.0.0.0", port=port, debug=True, allow_unsafe_werkzeug=True)

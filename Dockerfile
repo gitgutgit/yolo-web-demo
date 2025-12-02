@@ -33,5 +33,5 @@ USER app
 EXPOSE 8080
 ENV PORT=8080
 
-# Run with gunicorn + eventlet for SocketIO1
+# Run with gunicorn + eventlet for SocketIO
 CMD exec gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT --timeout 300 --log-level info app:app
