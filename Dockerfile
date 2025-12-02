@@ -31,7 +31,6 @@ USER app
 
 # Railway uses PORT env var
 EXPOSE 8080
-ENV PORT=8080
 
 # Run with gunicorn + eventlet for SocketIO
-CMD exec gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT --timeout 300 --log-level info app:app
+CMD ["gunicorn", "--worker-class", "eventlet", "-w", "1", "--bind", "0.0.0.0:8080", "--timeout", "300", "--log-level", "info", "app:app"]
