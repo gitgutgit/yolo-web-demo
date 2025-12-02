@@ -25,7 +25,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 YOLO_MODEL_PATH = os.path.join(BASE_DIR, "yolo_finetuned.pt")          # fine-tuned YOLO
 PPO_MODEL_PATH = os.path.join(BASE_DIR, "ppo_agent.pt")      # trained PPO
 
-
 app = Flask(
     __name__,
     static_folder=BASE_DIR,
@@ -103,13 +102,6 @@ def load_ppo_for_web(model_path: str) -> PPOAgent:
     return agent
 
 
-
-
-print("✅ Loading YOLO model:", YOLO_MODEL_PATH)
-yolo_model = YOLO(YOLO_MODEL_PATH)
-
-print("✅ Loading PPO model:", PPO_MODEL_PATH)
-ppo_agent = load_ppo_for_web(PPO_MODEL_PATH)
 # ==========================
 # Flask 라우트 (HTML / 리더보드)
 # ==========================
@@ -554,22 +546,13 @@ def on_frame_capture(data):
     #     f.write(img_bytes)
 
 
+
 # ==========================
 # 메인
 # ==========================
 
 if __name__ == "__main__":
-    print("✅ Loading YOLO model:", YOLO_MODEL_PATH)
-    yolo_model = YOLO(YOLO_MODEL_PATH)
-
-    print("✅ Loading PPO model:", PPO_MODEL_PATH)
-    ppo_agent = load_ppo_for_web(PPO_MODEL_PATH)
-
-    # Flask+SocketIO 서버 실행
-    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
-
-if __name__ == "__main__":
     import os
     port = int(os.getenv("PORT", 5000))
-    print(f"🚀 Running in LOCAL development mode on port {port}")
+    print(f"🚀 Running in development mode on port {port}")
     socketio.run(app, host="0.0.0.0", port=port, debug=True, allow_unsafe_werkzeug=True)
