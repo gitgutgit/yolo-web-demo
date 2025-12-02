@@ -1,0 +1,14 @@
+{
+  "session_id": "yBfVOpdBKJw-BvHRAAAB",
+  "mode": "human",
+  "score": 5,
+  "survival_time": 3.307821035385132,
+  "total_frames": 263,
+  "final_state": {
+    "player_x": 90,
+    "player_y": 553,
+    "obstacles_count": 6
+  },
+  "timestamp": "2025-11-21T18:57:51.802116",
+  "player_name": "ww1"
+}

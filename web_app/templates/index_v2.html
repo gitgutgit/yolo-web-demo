@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 YOLO-You-Only-Live-Once - Interactive Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        /* ✨ 원본 스타일 유지 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-attachment: fixed;
+            color: #1a1a1a;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 56px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #666;
+            margin: 8px 0;
+        }
+
+        .badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 12px;
+        }
+
+        .game-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .game-container {
+            position: relative;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 960px;
+            height: 720px;
+            border-radius: 16px;
+            background: linear-gradient(180deg, #e3f2fd 0%, #fff9c4 100%);
+        }
+
+        .game-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .game-overlay.hidden {
+            display: none;
+        }
+
+        .start-screen {
+            text-align: center;
+            padding: 48px;
+            max-width: 500px;
+        }
+
+        .start-screen h2 {
+            font-size: 42px;
+            margin-bottom: 16px;
+        }
+
+        .start-screen p {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 32px;
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 24px 32px;
+            border: none;
+            border-radius: 16px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mode-btn.human {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .mode-btn.ai {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-4px);
+        }
+
+        .mode-btn .icon {
+            font-size: 40px;
+        }
+
+        .mode-btn .label {
+            font-size: 18px;
+        }
+
+        .mode-btn .desc {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel-card h3 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .stat-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            font-size: 18px;
+            color: #667eea;
+        }
+
+        .controls-hint {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .controls-hint h4 {
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        kbd {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-family: monospace;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+
+        .status-indicator.connected {
+            background: rgba(76, 217, 100, 0.2);
+            color: #4cd964;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .data-collection {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .data-stat {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 12px;
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* 🆕 Action Probs 패널 */
+        .action-probs-panel {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            color: white;
+            border-radius: 16px;
+            padding: 20px;
+            display: none;
+        }
+
+        .action-probs-panel.active {
+            display: block;
+        }
+
+        .action-probs-panel h4 {
+            font-size: 16px;
+            margin-bottom: 16px;
+        }
+
+        .prob-bar {
+            margin: 10px 0;
+        }
+
+        .prob-label {
+            font-size: 13px;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .prob-track {
+            background: rgba(255, 255, 255, 0.3);
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .prob-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.15s;
+        }
+
+        .prob-fill.stay {
+            background: #95a5a6;
+        }
+
+        .prob-fill.left {
+            background: #3498db;
+        }
+
+        .prob-fill.right {
+            background: #9b59b6;
+        }
+
+        .prob-fill.jump {
+            background: #e67e22;
+        }
+
+        .detection-hint {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 12px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        /* 리더보드 */
+        .leaderboard {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 30px;
+        }
+
+        .leaderboard h2 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .leaderboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .leaderboard-rank {
+            font-size: 20px;
+            font-weight: 700;
+            width: 40px;
+            text-align: center;
+            color: #667eea;
+        }
+
+        .leaderboard-rank.top1 {
+            color: #FFD700;
+            font-size: 24px;
+        }
+
+        .leaderboard-rank.top2 {
+            color: #C0C0C0;
+        }
+
+        .leaderboard-rank.top3 {
+            color: #CD7F32;
+        }
+
+        .leaderboard-info {
+            flex: 1;
+            margin-left: 12px;
+        }
+
+        .leaderboard-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .leaderboard-stats {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .leaderboard-score {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .player-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+
+        .player-badge.human {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .player-badge.ai {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        /* 모달 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-button {
+            flex: 1;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .modal-button.primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .modal-button.secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        /* 난이도 모달 */
+        .difficulty-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1001;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .difficulty-modal.active {
+            display: flex;
+        }
+
+        .difficulty-content {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .difficulty-content h3 {
+            font-size: 32px;
+            text-align: center;
+            margin-bottom: 12px;
+            color: #667eea;
+        }
+
+        .difficulty-content p {
+            text-align: center;
+            color: #666;
+            margin-bottom: 32px;
+        }
+
+        .difficulty-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .difficulty-btn {
+            border: 2px solid #e1e8ed;
+            border-radius: 16px;
+            padding: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            text-align: left;
+            transition: all 0.3s;
+        }
+
+        .difficulty-btn:hover {
+            transform: translateY(-2px);
+            border-color: #667eea;
+        }
+
+        .difficulty-btn.level1 {
+            background: linear-gradient(135deg, #a8edea, #fed6e3);
+        }
+
+        .difficulty-btn.level2 {
+            background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+        }
+
+        .difficulty-btn.level3 {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            color: white;
+        }
+
+        .difficulty-btn.level4 {
+            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+            color: white;
+        }
+
+        .difficulty-btn .icon {
+            font-size: 42px;
+            min-width: 50px;
+        }
+
+        .difficulty-btn .level-name {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .difficulty-btn .level-desc {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .difficulty-btn.level3 .level-desc,
+        .difficulty-btn.level4 .level-desc {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .difficulty-modal-close {
+            background: #e1e8ed;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            margin-top: 24px;
+            width: 100%;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        /* 가상 컨트롤 */
+        .virtual-control-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 999;
+            background: rgba(102, 126, 234, 0.95);
+            border: none;
+            border-radius: 16px;
+            padding: 12px 20px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .mobile-controls {
+            display: none;
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            gap: 15px;
+        }
+
+        .mobile-controls.active {
+            display: flex;
+        }
+
+        .mobile-btn {
+            width: 70px;
+            height: 70px;
+            background: rgba(102, 126, 234, 0.95);
+            border: none;
+            border-radius: 16px;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .mobile-btn.jump {
+            background: rgba(245, 87, 108, 0.95);
+        }
+
+        .footer {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 32px;
+            text-align: center;
+        }
+
+        .footer p {
+            color: #666;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .footer strong {
+            color: #1a1a1a;
+        }
+
+        @media (max-width: 768px) {
+            .game-wrapper {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🎮 YOLO-You-Only-Live-Once</h1>
+            <p class="subtitle">Real-Time Vision-Based Game AI with YOLO + PPO</p>
+            <p class="subtitle">✨ Computer Vision • Reinforcement Learning • Deep Learning</p>
+            <span class="badge">Team Backward - Columbia Deep Learning</span>
+        </header>
+
+        <div class="game-wrapper">
+            <div class="game-container">
+                <canvas id="gameCanvas" width="960" height="720"></canvas>
+                <div id="gameOverlay" class="game-overlay">
+                    <div class="start-screen">
+                        <h2>🚀 Start Game</h2>
+                        <p>Choose your play mode</p>
+                        <div class="mode-buttons">
+                            <button id="humanModeBtn" class="mode-btn human">
+                                <span class="icon">🧑</span>
+                                <span class="label">Human Mode</span>
+                                <span class="desc">Play yourself</span>
+                            </button>
+                            <button id="aiModeBtn" class="mode-btn ai">
+                                <span class="icon">🤖</span>
+                                <span class="label">AI Mode</span>
+                                <span class="desc">YOLO + PPO</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="side-panel">
+                <div class="panel-card">
+                    <h3>📊 Game Info</h3>
+                    <div class="stat-row"><span class="stat-label">Mode</span><span class="stat-value"
+                            id="currentMode">-</span></div>
+                    <div class="stat-row"><span class="stat-label">Score</span><span class="stat-value"
+                            id="currentScore">0</span></div>
+                    <div class="stat-row"><span class="stat-label">Time</span><span class="stat-value"
+                            id="currentTime">0.0s</span></div>
+                    <div class="stat-row"><span class="stat-label">Health</span><span class="stat-value"
+                            id="currentHealth">100</span></div>
+                    <div class="stat-row">
+                        <span class="stat-label">Status</span>
+                        <span id="connectionStatus" class="status-indicator connected">
+                            <span class="status-dot"></span> Connected
+                        </span>
+                    </div>
+                </div>
+
+                <div class="panel-card action-probs-panel" id="actionProbsPanel">
+                    <h4>🧠 PPO Action Probabilities</h4>
+                    <div class="prob-bar">
+                        <div class="prob-label"><span>Stay</span><span id="probStayText">0%</span></div>
+                        <div class="prob-track">
+                            <div class="prob-fill stay" id="probStay" style="width:25%"></div>
+                        </div>
+                    </div>
+                    <div class="prob-bar">
+                        <div class="prob-label"><span>Left</span><span id="probLeftText">0%</span></div>
+                        <div class="prob-track">
+                            <div class="prob-fill left" id="probLeft" style="width:25%"></div>
+                        </div>
+                    </div>
+                    <div class="prob-bar">
+                        <div class="prob-label"><span>Right</span><span id="probRightText">0%</span></div>
+                        <div class="prob-track">
+                            <div class="prob-fill right" id="probRight" style="width:25%"></div>
+                        </div>
+                    </div>
+                    <div class="prob-bar">
+                        <div class="prob-label"><span>Jump</span><span id="probJumpText">0%</span></div>
+                        <div class="prob-track">
+                            <div class="prob-fill jump" id="probJump" style="width:25%"></div>
+                        </div>
+                    </div>
+                    <div class="detection-hint">Press <kbd>G</kbd> to toggle Detection Boxes</div>
+                </div>
+
+                <div class="panel-card controls-hint">
+                    <h4>🎮 Controls</h4>
+                    <div class="control-item"><kbd>SPACE</kbd><span>Jump</span></div>
+                    <div class="control-item"><kbd>←</kbd><kbd>→</kbd><span>Move</span></div>
+                    <div class="control-item"><kbd>R</kbd><span>Restart</span></div>
+                    <div class="control-item"><kbd>G</kbd><span>Toggle YOLO Boxes</span></div>
+                </div>
+
+                <div class="panel-card data-collection">
+                    <h4>📦 Data Collection</h4>
+                    <div class="data-stat"><span>State-Action Logs</span><span id="collectedStates">0</span></div>
+                    <div class="data-stat"><span>Frame Images</span><span id="collectedImages">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="leaderboard">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h2>🏆 Leaderboard</h2>
+                <div><span id="leaderboardCount" style="color:#666;font-size:14px">Showing 0 of 0</span>
+                    <button id="loadMoreBtn" onclick="loadMoreScores()"
+                        style="display:none;padding:8px 16px;border:none;border-radius:8px;background:#667eea;color:white;cursor:pointer;margin-left:12px">Show
+                        More</button>
+                </div>
+            </div>
+            <div id="leaderboardList" class="leaderboard-grid">
+                <p style="text-align:center;color:#999;padding:40px;grid-column:1/-1">Rankings will appear here</p>
+            </div>
+        </div>
+
+        <div id="playerNameModal" class="modal">
+            <div class="modal-content">
+                <h2 class="modal-title">👤 Player Name</h2>
+                <p style="text-align:center;color:#666;margin-bottom:20px">Enter your name for the leaderboard</p>
+                <input type="text" id="playerNameInput" class="modal-input" placeholder="e.g. Minsuk Kim"
+                    maxlength="20" />
+                <div class="modal-buttons">
+                    <button class="modal-button secondary" onclick="cancelPlayerName()">Cancel</button>
+                    <button class="modal-button primary" onclick="confirmPlayerName()">Start</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="difficultyModal" class="difficulty-modal">
+            <div class="difficulty-content">
+                <h3>🤖 Choose AI Difficulty</h3>
+                <p>Level 2 = YOLO + PPO (Recommended)</p>
+                <div class="difficulty-buttons">
+                    <button class="difficulty-btn level1" data-level="1"><span class="icon">😊</span>
+                        <div>
+                            <div class="level-name">Level 1: Easy</div>
+                            <div class="level-desc">Simple heuristic</div>
+                        </div>
+                    </button>
+                    <button class="difficulty-btn level2" data-level="2"><span class="icon">🎯</span>
+                        <div>
+                            <div class="level-name">Level 2: YOLO + PPO</div>
+                            <div class="level-desc">Vision → State → Policy</div>
+                        </div>
+                    </button>
+                    <button class="difficulty-btn level3" data-level="3"><span class="icon">🔥</span>
+                        <div>
+                            <div class="level-name">Level 3: Hard</div>
+                            <div class="level-desc">PPO + Heuristic ensemble</div>
+                        </div>
+                    </button>
+                    <button class="difficulty-btn level4" data-level="4"><span class="icon">⭐</span>
+                        <div>
+                            <div class="level-name">Level 4: Expert</div>
+                            <div class="level-desc">Full ensemble</div>
+                        </div>
+                    </button>
+                </div>
+                <button class="difficulty-modal-close" onclick="closeDifficultyModal()">Cancel</button>
+            </div>
+        </div>
+
+        <button class="virtual-control-toggle" onclick="toggleVirtualControls()">🎮 Virtual Controls</button>
+        <div class="mobile-controls" id="mobileControls">
+            <button class="mobile-btn" id="mobileLeft">◀</button>
+            <button class="mobile-btn jump" id="mobileJump">▲</button>
+            <button class="mobile-btn" id="mobileRight">▶</button>
+        </div>
+
+        <footer class="footer">
+            <p><strong>Team Backward</strong> - COMS W4995 Deep Learning for Computer Vision</p>
+            <p>Jeewon Kim (jk4864) • Chloe Lee (cl4490) • Minsuk Kim (mk4434)</p>
+        </footer>
+    </div>
+
+    <script>
+        // ============================================================================
+        // 전역 변수 & 설정
+        // ============================================================================
+        let pendingGameMode = null;
+        let playerName = null;
+        let allScores = [];
+        let displayCount = 20;
+
+        const DETECTION_COLORS = { 0: '#00ff00', 1: '#ff0000', 2: '#ffff00', 3: '#ffa500', 4: '#ff4500' };
+        const CLASS_NAMES = { 0: 'Player', 1: 'Meteor', 2: 'Star', 3: 'Caution', 4: 'Lava' };
+
+        // ============================================================================
+        // 모달 함수
+        // ============================================================================
+        function showPlayerNameModal(mode) {
+            if (mode === 'ai') return true;
+            pendingGameMode = mode;
+            const modal = document.getElementById('playerNameModal');
+            const input = document.getElementById('playerNameInput');
+            const saved = localStorage.getItem('playerName');
+            if (saved) input.value = saved;
+            modal.classList.add('show');
+            input.focus();
+            input.onkeydown = (e) => { if (e.key === 'Enter') confirmPlayerName(); };
+            return false;
+        }
+
+        function confirmPlayerName() {
+            const name = document.getElementById('playerNameInput').value.trim();
+            if (!name) { alert('Please enter your name!'); return; }
+            playerName = name;
+            localStorage.setItem('playerName', name);
+            document.getElementById('playerNameModal').classList.remove('show');
+            if (window.gameClient && pendingGameMode) window.gameClient.actuallyStartGame(pendingGameMode, playerName);
+        }
+
+        function cancelPlayerName() {
+            document.getElementById('playerNameModal').classList.remove('show');
+            pendingGameMode = null;
+        }
+
+        function showDifficultyModal(mode) {
+            pendingGameMode = mode;
+            document.getElementById('difficultyModal').classList.add('active');
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.onclick = () => selectDifficulty(parseInt(btn.getAttribute('data-level')));
+            });
+        }
+
+        function selectDifficulty(level) {
+            document.getElementById('difficultyModal').classList.remove('active');
+            if (window.gameClient && pendingGameMode) window.gameClient.actuallyStartGame(pendingGameMode, null, level);
+            pendingGameMode = null;
+        }
+
+        function closeDifficultyModal() {
+            document.getElementById('difficultyModal').classList.remove('active');
+            pendingGameMode = null;
+        }
+
+        // ============================================================================
+        // 리더보드
+        // ============================================================================
+        function loadLeaderboard() {
+            fetch('/api/leaderboard').then(r => r.json()).then(d => { allScores = d.scores || []; displayCount = 20; updateLeaderboard(); }).catch(console.error);
+        }
+
+        function loadMoreScores() { displayCount += 20; updateLeaderboard(); }
+
+        function updateLeaderboard() {
+            const container = document.getElementById('leaderboardList');
+            const countLabel = document.getElementById('leaderboardCount');
+            const btn = document.getElementById('loadMoreBtn');
+            if (!allScores.length) { container.innerHTML = '<p style="text-align:center;color:#999;padding:20px;grid-column:1/-1">No records yet</p>'; countLabel.textContent = 'Showing 0 of 0'; btn.style.display = 'none'; return; }
+            const show = allScores.slice(0, Math.min(displayCount, allScores.length));
+            countLabel.textContent = `Showing ${show.length} of ${allScores.length}`;
+            btn.style.display = displayCount < allScores.length ? 'inline-block' : 'none';
+            container.innerHTML = show.map((e, i) => {
+                const rank = i + 1;
+                const rc = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
+                const re = rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : rank;
+                const ml = e.mode === 'human' ? 'human' : 'ai';
+                const mt = e.mode === 'human' ? '👤' : '🤖';
+                const ds = e.date ? new Date(e.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+                return `<div class="leaderboard-item"><div class="leaderboard-rank ${rc}">${re}</div><div class="leaderboard-info"><div class="leaderboard-name">${e.player}<span class="player-badge ${ml}">${mt} ${ml}</span></div><div class="leaderboard-stats">${e.time.toFixed(1)}s • ${ds}</div></div><div class="leaderboard-score">${e.score}</div></div>`;
+            }).join('');
+        }
+
+        // ============================================================================
+        // 가상 컨트롤
+        // ============================================================================
+        let vcEnabled = false;
+        function toggleVirtualControls() {
+            vcEnabled = !vcEnabled;
+            document.getElementById('mobileControls').classList.toggle('active', vcEnabled);
+        }
+
+        function setupControlButton(id, action) {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            let interval = null, timeout = null;
+            function start() {
+                if (window.gameClient?.socket) {
+                    window.gameClient.socket.emit('player_action', { action });
+                    timeout = setTimeout(() => { interval = setInterval(() => window.gameClient?.socket.emit('player_action', { action }), 50); }, 150);
+                }
+            }
+            function stop() { clearTimeout(timeout); clearInterval(interval); timeout = interval = null; }
+            btn.addEventListener('mousedown', e => { e.preventDefault(); start(); });
+            btn.addEventListener('mouseup', stop);
+            btn.addEventListener('mouseleave', stop);
+            btn.addEventListener('touchstart', e => { e.preventDefault(); start(); });
+            btn.addEventListener('touchend', e => { e.preventDefault(); stop(); });
+        }
+
+        // ============================================================================
+        // 게임 클라이언트
+        // ============================================================================
+        class SimpleGameClient {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.socket = io();
+                this.gameState = null;
+                this.currentMode = null;
+                this.isRunning = false;
+                this.particles = [];
+                this.showDetections = true;
+                this.keys = { left: false, right: false };
+                this.moveInterval = null;
+                window.gameClient = this;
+                this.init();
+            }
+
+            init() {
+                document.getElementById('humanModeBtn').addEventListener('click', () => this.startGameWithModal('human'));
+                document.getElementById('aiModeBtn').addEventListener('click', () => this.startGameWithModal('ai'));
+                document.addEventListener('keydown', e => this.handleKeyDown(e));
+                document.addEventListener('keyup', e => this.handleKeyUp(e));
+
+                this.socket.on('connect', () => { document.getElementById('connectionStatus').innerHTML = '<span class="status-dot"></span> Connected'; document.getElementById('connectionStatus').className = 'status-indicator connected'; });
+                this.socket.on('disconnect', () => { document.getElementById('connectionStatus').innerHTML = '<span class="status-dot"></span> Disconnected'; document.getElementById('connectionStatus').className = 'status-indicator disconnected'; });
+                this.socket.on('game_started', d => {
+                    this.currentMode = d.state?.mode || 'human';
+                    this.isRunning = true;
+                    this.particles = [];
+                    document.getElementById('gameOverlay').classList.add('hidden');
+                    document.getElementById('currentMode').textContent = this.currentMode === 'human' ? '👤 Human' : '🤖 AI';
+                    document.getElementById('actionProbsPanel').classList.toggle('active', this.currentMode === 'ai');
+                    if (d.state) { this.gameState = d.state; this.render(); this.updateUI(); }
+                });
+                this.socket.on('game_update', d => { this.gameState = d.state || d; this.render(); this.updateUI(); if (this.gameState.frame % 10 === 0) this.captureFrame(); });
+                this.socket.on('game_over', d => { this.showGameOver(d); loadLeaderboard(); });
+            }
+
+            startGameWithModal(mode) { mode === 'human' ? showPlayerNameModal(mode) : showDifficultyModal(mode); }
+            actuallyStartGame(mode, name, level = 2) { this.socket.emit('start_game', { mode, player_name: name, ai_level: level }); }
+
+            handleKeyDown(e) {
+                if (e.key === 'g' || e.key === 'G') { this.showDetections = !this.showDetections; this.socket.emit('toggle_detections'); return; }
+                if (!this.isRunning || this.currentMode !== 'human') return;
+                if (e.key === 'ArrowLeft' || e.key === 'a') { if (!this.keys.left) { this.socket.emit('player_action', { action: 'left' }); this.keys.left = true; setTimeout(() => { if (this.keys.left) this.startMove('left'); }, 150); } e.preventDefault(); }
+                if (e.key === 'ArrowRight' || e.key === 'd') { if (!this.keys.right) { this.socket.emit('player_action', { action: 'right' }); this.keys.right = true; setTimeout(() => { if (this.keys.right) this.startMove('right'); }, 150); } e.preventDefault(); }
+                if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') { this.socket.emit('player_action', { action: 'jump' }); e.preventDefault(); }
+                if (e.key === 'r' || e.key === 'R') this.startGameWithModal(this.currentMode);
+            }
+
+            startMove(dir) { if (this.moveInterval) clearInterval(this.moveInterval); this.moveInterval = setInterval(() => { if ((dir === 'left' && this.keys.left) || (dir === 'right' && this.keys.right)) this.socket.emit('player_action', { action: dir }); else { clearInterval(this.moveInterval); this.moveInterval = null; } }, 50); }
+            handleKeyUp(e) { if (e.key === 'ArrowLeft' || e.key === 'a') this.keys.left = false; if (e.key === 'ArrowRight' || e.key === 'd') this.keys.right = false; }
+
+            render() {
+                if (!this.gameState) return;
+                const ctx = this.ctx;
+                const p = this.gameState.player;
+                const obs = this.gameState.obstacles || [];
+
+                // 배경
+                const bg = ctx.createLinearGradient(0, 0, 0, 720);
+                bg.addColorStop(0, '#e3f2fd');
+                bg.addColorStop(1, '#fff9c4');
+                ctx.fillStyle = bg;
+                ctx.fillRect(0, 0, 960, 720);
+
+                // 용암
+                if (this.gameState.lava) this.renderLava(this.gameState.lava);
+
+                // 플레이어
+                ctx.save();
+                ctx.shadowColor = 'rgba(102,126,234,0.5)';
+                ctx.shadowBlur = 20;
+                const pg = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.size);
+                pg.addColorStop(0, '#667eea');
+                pg.addColorStop(1, '#764ba2');
+                ctx.fillStyle = pg;
+                ctx.beginPath();
+                ctx.roundRect(p.x, p.y, p.size, p.size, 10);
+                ctx.fill();
+                // 체력바
+                const hp = (p.health || 100) / 100;
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillRect(p.x, p.y - 12, p.size, 6);
+                ctx.fillStyle = hp > 0.6 ? '#4CAF50' : hp > 0.3 ? '#FFC107' : '#F44336';
+                ctx.fillRect(p.x, p.y - 12, p.size * hp, 6);
+                ctx.restore();
+
+                // 장애물
+                obs.forEach(o => this.renderObs(o));
+
+                // 파티클
+                this.renderParticles();
+
+                // 🆕 Detection Box
+                if (this.showDetections && this.gameState.detections?.length) this.renderDetections(this.gameState.detections);
+
+                // 별 이펙트
+                if (this.gameState.star_collected) this.createStarEffect(p.x + p.size / 2, p.y + p.size / 2);
+            }
+
+            renderObs(o) {
+                const ctx = this.ctx;
+                ctx.save();
+                if (o.type === 'star') {
+                    ctx.shadowColor = 'rgba(255,215,0,0.8)';
+                    ctx.shadowBlur = 20;
+                    const cx = o.x + o.size / 2, cy = o.y + o.size / 2;
+                    ctx.fillStyle = '#FFD700';
+                    ctx.beginPath();
+                    for (let i = 0; i < 10; i++) {
+                        const r = i % 2 === 0 ? o.size / 2 : o.size / 4;
+                        const a = Math.PI * i / 5 - Math.PI / 2;
+                        i === 0 ? ctx.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a)) : ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    const cx = o.x + o.size / 2, cy = o.y + o.size / 2, r = o.size / 2;
+                    const vx = o.vx || 0, vy = o.vy || 5;
+                    const ta = Math.atan2(-vy, -vx), tl = r * 3;
+                    const tex = cx + Math.cos(ta) * tl, tey = cy + Math.sin(ta) * tl;
+                    const tg = ctx.createLinearGradient(tex, tey, cx, cy);
+                    tg.addColorStop(0, 'rgba(255,69,0,0)');
+                    tg.addColorStop(0.5, 'rgba(255,140,0,0.4)');
+                    tg.addColorStop(1, 'rgba(255,255,255,0.8)');
+                    ctx.fillStyle = tg;
+                    ctx.beginPath();
+                    const pa = ta + Math.PI / 2;
+                    ctx.moveTo(tex, tey);
+                    ctx.lineTo(cx + Math.cos(pa) * r * 0.6, cy + Math.sin(pa) * r * 0.6);
+                    ctx.lineTo(cx - Math.cos(pa) * r * 0.6, cy - Math.sin(pa) * r * 0.6);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.shadowColor = 'rgba(255,100,0,1)';
+                    ctx.shadowBlur = 20;
+                    const mg = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.1, cx, cy, r);
+                    mg.addColorStop(0, '#8B4513');
+                    mg.addColorStop(0.5, '#654321');
+                    mg.addColorStop(1, '#1A1A1A');
+                    ctx.fillStyle = mg;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255,100,0,0.9)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(cx - r * 0.5, cy - r * 0.4);
+                    ctx.lineTo(cx, cy);
+                    ctx.lineTo(cx + r * 0.3, cy + r * 0.4);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            renderLava(l) {
+                const ctx = this.ctx;
+                const h = l.height, y = 720 - h, x = l.zone_x, w = l.zone_width;
+                if (l.state === 'warning') {
+                    const a = (Math.sin(Date.now() / 200) + 1) / 2;
+                    ctx.fillStyle = `rgba(255,69,0,${a * 0.4 + 0.2})`;
+                    ctx.fillRect(x, y, w, h);
+                    ctx.strokeStyle = `rgba(255,0,0,${a * 0.8 + 0.2})`;
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(x, y, w, h);
+                    ctx.fillStyle = `rgba(255,255,255,${a})`;
+                    ctx.font = 'bold 20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('⚠️ LAVA ⚠️', x + w / 2, y + 40);
+                    ctx.fillText(`${l.timer.toFixed(1)}s`, x + w / 2, y + 70);
+                } else if (l.state === 'active') {
+                    const g = ctx.createLinearGradient(0, y, 0, 720);
+                    g.addColorStop(0, '#FF4500');
+                    g.addColorStop(0.5, '#FF6347');
+                    g.addColorStop(1, '#DC143C');
+                    ctx.fillStyle = g;
+                    ctx.fillRect(x, y, w, h);
+                    ctx.strokeStyle = 'rgba(255,215,0,0.6)';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    const wo = (Date.now() / 10) % 100;
+                    for (let px = x; px < x + w; px += 30) {
+                        const py = y + Math.sin((px + wo) / 15) * 12;
+                        px === x ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+                    }
+                    ctx.stroke();
+                    for (let i = 0; i < 5; i++) {
+                        const bx = x + (w / 5) * i + ((Date.now() / 50 + i * 20) % 30);
+                        const by = y + 30 + Math.sin((Date.now() / 100 + i)) * 20;
+                        ctx.fillStyle = 'rgba(255,140,0,0.4)';
+                        ctx.beginPath();
+                        ctx.arc(bx, by, 8, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                    ctx.font = 'bold 24px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`🔥 ${l.timer.toFixed(1)}s`, x + w / 2, y + 40);
+                }
+            }
+
+            renderDetections(dets) {
+                const ctx = this.ctx;
+                for (const d of dets) {
+                    if (!d.bbox) continue;
+                    const [x1, y1, x2, y2] = d.bbox;
+                    const col = DETECTION_COLORS[d.cls] || '#fff';
+                    const name = CLASS_NAMES[d.cls] || `cls${d.cls}`;
+                    const conf = d.conf?.toFixed(2) || '1.00';
+                    ctx.strokeStyle = col;
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+                    const lbl = `${name}: ${conf}`;
+                    ctx.font = '12px Arial';
+                    const tw = ctx.measureText(lbl).width;
+                    ctx.fillStyle = col;
+                    ctx.fillRect(x1, y1 - 18, tw + 6, 18);
+                    ctx.fillStyle = 'black';
+                    ctx.fillText(lbl, x1 + 3, y1 - 5);
+                }
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(10, 10, 180, 25);
+                ctx.fillStyle = '#00ff00';
+                ctx.font = '14px Arial';
+                ctx.fillText(`🔍 YOLO Detections: ${dets.length}`, 15, 27);
+            }
+
+            createStarEffect(x, y) {
+                for (let i = 0; i < 20; i++) {
+                    const a = Math.PI * 2 * i / 20, s = 2 + Math.random() * 3;
+                    this.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, size: 3 + Math.random() * 5, color: ['#FFD700', '#FFA500', '#FFFF00'][~~(Math.random() * 3)] });
+                }
+            }
+
+            renderParticles() {
+                const ctx = this.ctx;
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life -= 0.02;
+                    if (p.life <= 0) { this.particles.splice(i, 1); continue; }
+                    ctx.save();
+                    ctx.globalAlpha = p.life;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            updateUI() {
+                if (!this.gameState) return;
+                document.getElementById('currentScore').textContent = this.gameState.score;
+                document.getElementById('currentTime').textContent = (this.gameState.time || 0).toFixed(1) + 's';
+                document.getElementById('currentHealth').textContent = this.gameState.player?.health || 100;
+                document.getElementById('collectedStates').textContent = this.gameState.collected_states_count || 0;
+                document.getElementById('collectedImages').textContent = this.gameState.collected_images_count || 0;
+                if (this.currentMode === 'ai' && this.gameState.action_probs) {
+                    const pr = this.gameState.action_probs;
+                    ['Stay', 'Left', 'Right', 'Jump'].forEach((n, i) => {
+                        const id = 'prob' + n;
+                        const pct = (pr[i] * 100).toFixed(1);
+                        document.getElementById(id).style.width = pct + '%';
+                        document.getElementById(id + 'Text').textContent = pct + '%';
+                    });
+                }
+            }
+
+            captureFrame() { if (!this.canvas || !this.isRunning) return; try { this.socket.emit('frame_capture', { image: this.canvas.toDataURL('image/png', 0.8), frame: this.gameState.frame }); } catch (e) { } }
+
+            showGameOver(d) {
+                this.isRunning = false;
+                let msg = `Game Over!\n\nScore: ${d.score}\nTime: ${d.time.toFixed(1)}s`;
+                if (d.leaderboard?.length) { msg += '\n\n🏆 TOP 5:\n'; d.leaderboard.slice(0, 5).forEach((e, i) => msg += `${i + 1}. ${e.player}: ${e.score}pts\n`); }
+                alert(msg);
+                document.getElementById('gameOverlay').classList.remove('hidden');
+                document.getElementById('actionProbsPanel').classList.remove('active');
+            }
+        }
+
+        // ============================================================================
+        // 초기화
+        // ============================================================================
+        window.addEventListener('DOMContentLoaded', () => {
+            new SimpleGameClient();
+            setupControlButton('mobileLeft', 'left');
+            setupControlButton('mobileRight', 'right');
+            setupControlButton('mobileJump', 'jump');
+            loadLeaderboard();
+            setInterval(loadLeaderboard, 5000);
+        });
+    </script>
+</body>
+
+</html>

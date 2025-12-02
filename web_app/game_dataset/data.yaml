@@ -1,0 +1,10 @@
+names:
+- player
+- meteor
+- star
+- caution_lava
+- exist_lava
+nc: 5
+path: /Users/jeewonkim/Desktop/2025-semi2/DeepForComputerVision/YOLO-You-Only-Live-Once/web_app/game_dataset
+train: images/train
+val: images/train

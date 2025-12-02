@@ -1,0 +1,14 @@
+{
+  "session_id": "gE-cCnMCYn5Hq0SrAAAD",
+  "mode": "ai",
+  "score": 54,
+  "survival_time": 31.16468095779419,
+  "total_frames": 831,
+  "final_state": {
+    "player_x": 910,
+    "player_y": 670,
+    "obstacles_count": 9
+  },
+  "timestamp": "2025-11-25T23:38:35.911957",
+  "player_name": "AI-Easy-gE-cCn"
+}

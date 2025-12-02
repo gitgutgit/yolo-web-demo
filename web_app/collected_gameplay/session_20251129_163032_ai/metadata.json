@@ -1,0 +1,14 @@
+{
+  "session_id": "55nbwf0nKPjoWZ2sAAAB",
+  "mode": "ai",
+  "score": 19,
+  "survival_time": 23.730088233947754,
+  "total_frames": 631,
+  "final_state": {
+    "player_x": 340,
+    "player_y": 653,
+    "obstacles_count": 14
+  },
+  "timestamp": "2025-11-29T16:30:32.603410",
+  "player_name": "AI-Hard-55nbwf"
+}

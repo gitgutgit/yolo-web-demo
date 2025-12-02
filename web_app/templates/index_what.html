@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLO-You-Only-Live-Once</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+
+        .game-area {
+            position: relative;
+        }
+
+        #gameCanvas {
+            border: 3px solid #4a90d9;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(74, 144, 217, 0.3);
+        }
+
+        .side-panel {
+            width: 280px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #4a90d9;
+            border-bottom: 2px solid #4a90d9;
+            padding-bottom: 10px;
+        }
+
+        .stats {
+            margin-bottom: 20px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .stat-value {
+            color: #4a90d9;
+            font-weight: bold;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-human {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-ai {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Action Probabilities */
+        .action-probs {
+            margin-top: 20px;
+        }
+
+        .prob-bar {
+            margin: 8px 0;
+        }
+
+        .prob-label {
+            font-size: 12px;
+            margin-bottom: 3px;
+        }
+
+        .prob-track {
+            background: #333;
+            height: 20px;
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .prob-fill {
+            height: 100%;
+            transition: width 0.1s;
+        }
+
+        .prob-fill.stay {
+            background: #95a5a6;
+        }
+
+        .prob-fill.left {
+            background: #3498db;
+        }
+
+        .prob-fill.right {
+            background: #9b59b6;
+        }
+
+        .prob-fill.jump {
+            background: #e67e22;
+        }
+
+        .prob-text {
+            position: absolute;
+            right: 5px;
+            top: 2px;
+            font-size: 11px;
+            color: white;
+        }
+
+        /* Detection Legend */
+        .legend {
+            margin-top: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            margin-right: 8px;
+            border-radius: 3px;
+        }
+
+        .legend-player {
+            background: #00ff00;
+        }
+
+        .legend-meteor {
+            background: #ff0000;
+        }
+
+        .legend-star {
+            background: #ffff00;
+        }
+
+        .legend-lava-warn {
+            background: #ffa500;
+        }
+
+        .legend-lava {
+            background: #ff4500;
+        }
+
+        /* Keyboard Hint */
+        .keyboard-hint {
+            margin-top: 20px;
+            font-size: 11px;
+            color: #888;
+        }
+
+        .key {
+            display: inline-block;
+            background: #444;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin: 0 2px;
+        }
+
+        /* Status indicator */
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        .status-dot.yolo {
+            background: #27ae60;
+        }
+
+        .status-dot.ppo {
+            background: #3498db;
+        }
+
+        .status-dot.off {
+            background: #7f8c8d;
+            animation: none;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="game-area">
+            <canvas id="gameCanvas" width="960" height="720"></canvas>
+        </div>
+
+        <div class="side-panel">
+            <div class="panel-title">🎮 YOLO-You-Only-Live-Once</div>
+
+            <!-- Status -->
+            <div class="status">
+                <span class="status-dot yolo" id="yoloStatus"></span>
+                <span>YOLO</span>
+                <span class="status-dot ppo" id="ppoStatus"></span>
+                <span>PPO</span>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats">
+                <div class="stat-row">
+                    <span>Score</span>
+                    <span class="stat-value" id="score">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>Time</span>
+                    <span class="stat-value" id="time">0.0s</span>
+                </div>
+                <div class="stat-row">
+                    <span>Health</span>
+                    <span class="stat-value" id="health">100</span>
+                </div>
+                <div class="stat-row">
+                    <span>Mode</span>
+                    <span class="stat-value" id="mode">-</span>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls">
+                <button class="btn btn-human" id="btnHuman" onclick="startGame('human')">
+                    🎮 Human Mode
+                </button>
+                <button class="btn btn-ai" id="btnAI" onclick="startGame('ai')">
+                    🤖 AI Mode (YOLO + PPO)
+                </button>
+            </div>
+
+            <!-- Action Probabilities (AI Mode) -->
+            <div class="action-probs" id="actionProbs" style="display: none;">
+                <div class="panel-title">🧠 Action Probabilities</div>
+                <div class="prob-bar">
+                    <div class="prob-label">Stay</div>
+                    <div class="prob-track">
+                        <div class="prob-fill stay" id="probStay"></div>
+                        <span class="prob-text" id="probStayText">0%</span>
+                    </div>
+                </div>
+                <div class="prob-bar">
+                    <div class="prob-label">Left</div>
+                    <div class="prob-track">
+                        <div class="prob-fill left" id="probLeft"></div>
+                        <span class="prob-text" id="probLeftText">0%</span>
+                    </div>
+                </div>
+                <div class="prob-bar">
+                    <div class="prob-label">Right</div>
+                    <div class="prob-track">
+                        <div class="prob-fill right" id="probRight"></div>
+                        <span class="prob-text" id="probRightText">0%</span>
+                    </div>
+                </div>
+                <div class="prob-bar">
+                    <div class="prob-label">Jump</div>
+                    <div class="prob-track">
+                        <div class="prob-fill jump" id="probJump"></div>
+                        <span class="prob-text" id="probJumpText">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detection Legend -->
+            <div class="legend" id="legend" style="display: none;">
+                <div class="panel-title">🔍 YOLO Detections</div>
+                <div class="legend-item">
+                    <div class="legend-color legend-player"></div>
+                    <span>Player</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-meteor"></div>
+                    <span>Meteor</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-star"></div>
+                    <span>Star</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-lava-warn"></div>
+                    <span>Lava Warning</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-lava"></div>
+                    <span>Active Lava</span>
+                </div>
+            </div>
+
+            <!-- Keyboard Hint -->
+            <div class="keyboard-hint">
+                <p><span class="key">←</span><span class="key">→</span> Move</p>
+                <p><span class="key">Space</span><span class="key">↑</span> Jump</p>
+                <p><span class="key">G</span> Toggle Detection Boxes</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const WIDTH = 960;
+        const HEIGHT = 720;
+
+        let socket;
+        let gameState = null;
+        let showDetections = true;
+        let isAIMode = false;
+
+        // Detection Box Colors
+        const COLORS = {
+            0: '#00ff00',  // Player - Green
+            1: '#ff0000',  // Meteor - Red
+            2: '#ffff00',  // Star - Yellow
+            3: '#ffa500',  // Caution Lava - Orange
+            4: '#ff4500'   // Active Lava - Red-Orange
+        };
+
+        const CLASS_NAMES = {
+            0: 'Player',
+            1: 'Meteor',
+            2: 'Star',
+            3: 'Caution',
+            4: 'Lava'
+        };
+
+        // Connect to server
+        function connect() {
+            socket = io();
+
+            socket.on('connect', () => {
+                console.log('✅ Connected');
+            });
+
+            socket.on('connected', (data) => {
+                console.log('Config:', data.config);
+            });
+
+            socket.on('game_started', (data) => {
+                console.log('🎮 Game started');
+                gameState = data.state;
+            });
+
+            socket.on('game_update', (data) => {
+                gameState = data.state;
+                render();
+                updateUI();
+            });
+
+            socket.on('game_over', (data) => {
+                alert(`Game Over!\nScore: ${data.score}\nTime: ${data.time.toFixed(1)}s`);
+                document.getElementById('btnHuman').disabled = false;
+                document.getElementById('btnAI').disabled = false;
+            });
+        }
+
+        // Start game
+        function startGame(mode) {
+            isAIMode = (mode === 'ai');
+
+            document.getElementById('btnHuman').disabled = true;
+            document.getElementById('btnAI').disabled = true;
+            document.getElementById('mode').textContent = mode.toUpperCase();
+
+            // Show/hide AI panels
+            document.getElementById('actionProbs').style.display = isAIMode ? 'block' : 'none';
+            document.getElementById('legend').style.display = isAIMode ? 'block' : 'none';
+
+            socket.emit('start_game', {
+                mode: mode,
+                ai_level: 2
+            });
+        }
+
+        // Render game
+        function render() {
+            if (!gameState) return;
+
+            // Clear
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+            // Background stars
+            ctx.fillStyle = 'white';
+            for (let i = 0; i < 100; i++) {
+                const x = (i * 97) % WIDTH;
+                const y = (i * 53) % HEIGHT;
+                ctx.beginPath();
+                ctx.arc(x, y, 1, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Lava
+            const lava = gameState.lava;
+            if (lava && lava.state !== 'inactive') {
+                const lavaY = HEIGHT - lava.height;
+
+                if (lava.state === 'warning') {
+                    ctx.fillStyle = 'rgba(255, 165, 0, 0.3)';
+                    ctx.fillRect(lava.zone_x, lavaY, lava.zone_width, lava.height);
+                    ctx.strokeStyle = '#ffa500';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(lava.zone_x, lavaY, lava.zone_width, lava.height);
+
+                    ctx.fillStyle = '#ffa500';
+                    ctx.font = 'bold 24px Arial';
+                    ctx.fillText('⚠️ WARNING', lava.zone_x + 80, lavaY + 60);
+                } else if (lava.state === 'active') {
+                    // Gradient lava
+                    const gradient = ctx.createLinearGradient(0, lavaY, 0, HEIGHT);
+                    gradient.addColorStop(0, '#FF4500');
+                    gradient.addColorStop(0.5, '#FF6347');
+                    gradient.addColorStop(1, '#DC143C');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(lava.zone_x, lavaY, lava.zone_width, lava.height);
+
+                    // Bubbles
+                    ctx.fillStyle = 'rgba(255, 200, 0, 0.8)';
+                    for (let i = 0; i < 8; i++) {
+                        const bx = lava.zone_x + 40 + i * 35 + Math.sin(Date.now() * 0.003 + i) * 10;
+                        const by = lavaY + 30 + Math.sin(Date.now() * 0.004 + i * 0.5) * 15;
+                        ctx.beginPath();
+                        ctx.arc(bx, by, 8, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 24px Arial';
+                    ctx.fillText('🔥 FIRE LAVA', lava.zone_x + 70, lavaY + 60);
+                }
+            }
+
+            // Obstacles
+            for (const obs of gameState.obstacles) {
+                if (obs.type === 'meteor') {
+                    // Meteor
+                    ctx.fillStyle = '#ff4444';
+                    ctx.beginPath();
+                    ctx.arc(obs.x + obs.size / 2, obs.y + obs.size / 2, obs.size / 2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Tail
+                    ctx.fillStyle = 'rgba(255, 100, 0, 0.5)';
+                    for (let i = 1; i <= 3; i++) {
+                        ctx.beginPath();
+                        ctx.arc(obs.x + obs.size / 2, obs.y - i * 8, obs.size / 4 - i * 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                } else if (obs.type === 'star') {
+                    // Star
+                    drawStar(obs.x + obs.size / 2, obs.y + obs.size / 2, 5, obs.size / 2, obs.size / 4, '#ffd700');
+                }
+            }
+
+            // Player
+            const player = gameState.player;
+            ctx.fillStyle = '#ffcc00';
+            ctx.fillRect(player.x, player.y, player.size, player.size);
+            ctx.fillStyle = '#ffe066';
+            ctx.fillRect(player.x + 5, player.y + 5, player.size - 10, player.size - 10);
+
+            // Eyes
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(player.x + 15, player.y + 18, 6, 0, Math.PI * 2);
+            ctx.arc(player.x + 35, player.y + 18, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(player.x + 15, player.y + 18, 3, 0, Math.PI * 2);
+            ctx.arc(player.x + 35, player.y + 18, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Smile
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(player.x + 25, player.y + 35, 10, 0, Math.PI);
+            ctx.stroke();
+
+            // Detection Boxes (AI Mode)
+            if (showDetections && gameState.detections && gameState.detections.length > 0) {
+                drawDetections(gameState.detections);
+            }
+        }
+
+        // Draw star shape
+        function drawStar(cx, cy, spikes, outerR, innerR, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            for (let i = 0; i < spikes * 2; i++) {
+                const r = (i % 2 === 0) ? outerR : innerR;
+                const angle = (i * Math.PI / spikes) - Math.PI / 2;
+                const x = cx + r * Math.cos(angle);
+                const y = cy + r * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // Glow
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(cx, cy, outerR + 5, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // Draw YOLO detection boxes
+        function drawDetections(detections) {
+            for (const det of detections) {
+                const bbox = det.bbox;
+                if (!bbox) continue;
+
+                const [x1, y1, x2, y2] = bbox;
+                const color = COLORS[det.cls] || '#ffffff';
+                const className = CLASS_NAMES[det.cls] || `cls${det.cls}`;
+                const conf = det.conf ? det.conf.toFixed(2) : '1.00';
+
+                // Box
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+
+                // Label background
+                const label = `${className}: ${conf}`;
+                ctx.font = '12px Arial';
+                const textWidth = ctx.measureText(label).width;
+                ctx.fillStyle = color;
+                ctx.fillRect(x1, y1 - 18, textWidth + 6, 18);
+
+                // Label text
+                ctx.fillStyle = 'black';
+                ctx.fillText(label, x1 + 3, y1 - 5);
+            }
+
+            // Detection count
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(10, 10, 150, 25);
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '14px Arial';
+            ctx.fillText(`YOLO Detections: ${detections.length}`, 15, 27);
+        }
+
+        // Update UI
+        function updateUI() {
+            if (!gameState) return;
+
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('time').textContent = gameState.time.toFixed(1) + 's';
+            document.getElementById('health').textContent = gameState.player.health;
+
+            // Action probabilities
+            if (isAIMode && gameState.action_probs) {
+                const probs = gameState.action_probs;
+                const actions = ['Stay', 'Left', 'Right', 'Jump'];
+                const ids = ['probStay', 'probLeft', 'probRight', 'probJump'];
+
+                for (let i = 0; i < 4; i++) {
+                    const pct = (probs[i] * 100).toFixed(1);
+                    document.getElementById(ids[i]).style.width = pct + '%';
+                    document.getElementById(ids[i] + 'Text').textContent = pct + '%';
+                }
+            }
+        }
+
+        // Keyboard input
+        document.addEventListener('keydown', (e) => {
+            if (!gameState || gameState.game_over) return;
+
+            // G key: toggle detections
+            if (e.key === 'g' || e.key === 'G') {
+                showDetections = !showDetections;
+                socket.emit('toggle_detections');
+                console.log('Detection Boxes:', showDetections ? 'ON' : 'OFF');
+                return;
+            }
+
+            // Human mode controls
+            if (!isAIMode) {
+                if (e.key === 'ArrowLeft') {
+                    socket.emit('player_action', { action: 'left' });
+                } else if (e.key === 'ArrowRight') {
+                    socket.emit('player_action', { action: 'right' });
+                } else if (e.key === ' ' || e.key === 'ArrowUp') {
+                    socket.emit('player_action', { action: 'jump' });
+                    e.preventDefault();
+                }
+            }
+        });
+
+        // Initialize
+        connect();
+    </script>
+</body>
+
+</html>

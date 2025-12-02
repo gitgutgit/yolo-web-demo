@@ -1,0 +1,196 @@
+{
+  "scores": [
+    {
+      "player": "AI-Medium-TsYo1A",
+      "score": 206,
+      "time": 147.06,
+      "mode": "ai",
+      "date": "2025-11-29T16:40:21.931652",
+      "session_id": "TsYo1AaHefP9U-r8AAAD"
+    },
+    {
+      "player": "soranto",
+      "score": 85,
+      "time": 49.72,
+      "mode": "human",
+      "date": "2025-11-22T17:36:31.955885",
+      "session_id": "3r5hYvcNwwK2H5KNAAAB"
+    },
+    {
+      "player": "AI-Easy-gE-cCn",
+      "score": 54,
+      "time": 31.16,
+      "mode": "ai",
+      "date": "2025-11-25T23:38:36.305042",
+      "session_id": "gE-cCnMCYn5Hq0SrAAAD"
+    },
+    {
+      "player": "soranto1",
+      "score": 42,
+      "time": 24.61,
+      "mode": "human",
+      "date": "2025-11-22T17:40:01.729563",
+      "session_id": "45OhyXZVNHRhhkGfAAAD"
+    },
+    {
+      "player": "dvid21",
+      "score": 39,
+      "time": 29.04,
+      "mode": "human",
+      "date": "2025-11-22T16:23:51.293137",
+      "session_id": "t4fzIJzWfZ1EZPQpAAAB"
+    },
+    {
+      "player": "korando",
+      "score": 39,
+      "time": 30.62,
+      "mode": "human",
+      "date": "2025-11-22T16:36:45.765873",
+      "session_id": "BPrP-O6-DBhQcWqxAAAB"
+    },
+    {
+      "player": "AI-Medium-55nbwf",
+      "score": 36,
+      "time": 27.85,
+      "mode": "ai",
+      "date": "2025-11-29T16:29:28.785065",
+      "session_id": "55nbwf0nKPjoWZ2sAAAB"
+    },
+    {
+      "player": "AI-Medium-5nuUyz",
+      "score": 35,
+      "time": 27.99,
+      "mode": "ai",
+      "date": "2025-11-29T16:35:20.268153",
+      "session_id": "5nuUyz7wr9P0v14JAAAD"
+    },
+    {
+      "player": "AI-Medium-7nKDMo",
+      "score": 30,
+      "time": 26.65,
+      "mode": "ai",
+      "date": "2025-11-25T23:37:26.183489",
+      "session_id": "7nKDMoXjF9Xgv1zlAAAB"
+    },
+    {
+      "player": "dvid21",
+      "score": 27,
+      "time": 22.45,
+      "mode": "human",
+      "date": "2025-11-22T16:23:14.253698",
+      "session_id": "t4fzIJzWfZ1EZPQpAAAB"
+    },
+    {
+      "player": "AI-Medium-YrdChF",
+      "score": 26,
+      "time": 28.1,
+      "mode": "ai",
+      "date": "2025-11-29T16:33:26.886805",
+      "session_id": "YrdChFmE8yAwyiJ_AAAB"
+    },
+    {
+      "player": "AI-Bot-kWTOca",
+      "score": 23,
+      "time": 21.69,
+      "mode": "ai",
+      "date": "2025-11-21T18:30:26.618419",
+      "session_id": "kWTOca5jR4L4LXfnAAAB"
+    },
+    {
+      "player": "AI-Hard-55nbwf",
+      "score": 19,
+      "time": 23.73,
+      "mode": "ai",
+      "date": "2025-11-29T16:30:32.910529",
+      "session_id": "55nbwf0nKPjoWZ2sAAAB"
+    },
+    {
+      "player": "ww",
+      "score": 17,
+      "time": 9.17,
+      "mode": "human",
+      "date": "2025-11-21T18:57:27.185465",
+      "session_id": "hH3O02UUPGy9c8HXAAAD"
+    },
+    {
+      "player": "dvid2111",
+      "score": 15,
+      "time": 14.74,
+      "mode": "human",
+      "date": "2025-11-22T16:36:03.070192",
+      "session_id": "BPrP-O6-DBhQcWqxAAAB"
+    },
+    {
+      "player": "AI-Medium-5nuUyz",
+      "score": 12,
+      "time": 15.29,
+      "mode": "ai",
+      "date": "2025-11-29T16:34:49.813259",
+      "session_id": "5nuUyz7wr9P0v14JAAAD"
+    },
+    {
+      "player": "david",
+      "score": 5,
+      "time": 12.11,
+      "mode": "human",
+      "date": "2025-11-21T18:29:59.240885",
+      "session_id": "kWTOca5jR4L4LXfnAAAB"
+    },
+    {
+      "player": "ww1",
+      "score": 5,
+      "time": 3.28,
+      "mode": "human",
+      "date": "2025-11-21T18:57:51.988255",
+      "session_id": "yBfVOpdBKJw-BvHRAAAB"
+    },
+    {
+      "player": "ww1",
+      "score": 5,
+      "time": 3.31,
+      "mode": "human",
+      "date": "2025-11-21T18:57:51.989186",
+      "session_id": "yBfVOpdBKJw-BvHRAAAB"
+    },
+    {
+      "player": "dvid",
+      "score": 2,
+      "time": 7.94,
+      "mode": "human",
+      "date": "2025-11-21T18:45:52.565819",
+      "session_id": "xDaqsIbme6oWSenHAAAB"
+    },
+    {
+      "player": "AI-Medium-8hhEMA",
+      "score": 1,
+      "time": 6.74,
+      "mode": "ai",
+      "date": "2025-11-29T16:33:58.431622",
+      "session_id": "8hhEMAvO6pXrHlRNAAAB"
+    },
+    {
+      "player": "dvid",
+      "score": 0,
+      "time": 6.75,
+      "mode": "human",
+      "date": "2025-11-21T19:06:06.550162",
+      "session_id": "KDGYYnKqN8YkiVD6AAAF"
+    },
+    {
+      "player": "dvid211",
+      "score": 0,
+      "time": 5.87,
+      "mode": "human",
+      "date": "2025-11-22T16:35:31.988154",
+      "session_id": "BPrP-O6-DBhQcWqxAAAB"
+    },
+    {
+      "player": "ww1111",
+      "score": 0,
+      "time": 4.42,
+      "mode": "human",
+      "date": "2025-11-23T22:49:27.299970",
+      "session_id": "bbaOqSSCMKI64ph9AAAB"
+    }
+  ]
+}

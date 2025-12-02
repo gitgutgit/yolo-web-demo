@@ -1,0 +1,14 @@
+{
+  "session_id": "BPrP-O6-DBhQcWqxAAAB",
+  "mode": "human",
+  "score": 39,
+  "survival_time": 30.622511863708496,
+  "total_frames": 815,
+  "final_state": {
+    "player_x": 570,
+    "player_y": 532,
+    "obstacles_count": 5
+  },
+  "timestamp": "2025-11-22T16:36:45.408022",
+  "player_name": "korando"
+}

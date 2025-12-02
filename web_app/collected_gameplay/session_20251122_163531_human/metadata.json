@@ -1,0 +1,14 @@
+{
+  "session_id": "BPrP-O6-DBhQcWqxAAAB",
+  "mode": "human",
+  "score": 0,
+  "survival_time": 5.867737054824829,
+  "total_frames": 156,
+  "final_state": {
+    "player_x": 120,
+    "player_y": 670,
+    "obstacles_count": 6
+  },
+  "timestamp": "2025-11-22T16:35:31.883474",
+  "player_name": "dvid211"
+}

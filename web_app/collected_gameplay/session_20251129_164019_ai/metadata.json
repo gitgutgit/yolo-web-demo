@@ -1,0 +1,14 @@
+{
+  "session_id": "TsYo1AaHefP9U-r8AAAD",
+  "mode": "ai",
+  "score": 206,
+  "survival_time": 147.06296563148499,
+  "total_frames": 3881,
+  "final_state": {
+    "player_x": 310,
+    "player_y": 670,
+    "obstacles_count": 7
+  },
+  "timestamp": "2025-11-29T16:40:19.553455",
+  "player_name": "AI-Medium-TsYo1A"
+}

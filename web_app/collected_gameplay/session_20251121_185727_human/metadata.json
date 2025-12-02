@@ -1,0 +1,14 @@
+{
+  "session_id": "hH3O02UUPGy9c8HXAAAD",
+  "mode": "human",
+  "score": 17,
+  "survival_time": 9.165971994400024,
+  "total_frames": 243,
+  "final_state": {
+    "player_x": 720,
+    "player_y": 532,
+    "obstacles_count": 8
+  },
+  "timestamp": "2025-11-21T18:57:27.041486",
+  "player_name": "ww"
+}

@@ -1,0 +1,14 @@
+{
+  "session_id": "kWTOca5jR4L4LXfnAAAB",
+  "mode": "ai",
+  "score": 23,
+  "survival_time": 21.69211506843567,
+  "total_frames": 574,
+  "final_state": {
+    "player_x": 560,
+    "player_y": 670,
+    "obstacles_count": 12
+  },
+  "timestamp": "2025-11-21T18:30:26.604260",
+  "player_name": "AI-Bot-kWTOca"
+}

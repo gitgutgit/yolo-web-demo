@@ -1,0 +1,14 @@
+{
+  "session_id": "3r5hYvcNwwK2H5KNAAAB",
+  "mode": "human",
+  "score": 85,
+  "survival_time": 49.71879196166992,
+  "total_frames": 1325,
+  "final_state": {
+    "player_x": 640,
+    "player_y": 608,
+    "obstacles_count": 10
+  },
+  "timestamp": "2025-11-22T17:36:31.337305",
+  "player_name": "soranto"
+}

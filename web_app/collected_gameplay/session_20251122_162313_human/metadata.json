@@ -1,0 +1,14 @@
+{
+  "session_id": "t4fzIJzWfZ1EZPQpAAAB",
+  "mode": "human",
+  "score": 27,
+  "survival_time": 22.450594186782837,
+  "total_frames": 600,
+  "final_state": {
+    "player_x": 480,
+    "player_y": 670,
+    "obstacles_count": 10
+  },
+  "timestamp": "2025-11-22T16:23:13.976643",
+  "player_name": "dvid21"
+}

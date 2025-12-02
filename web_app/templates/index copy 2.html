@@ -1,0 +1,2102 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Distilled Vision Agent - Interactive Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        /* ✨ 원본 스타일 유지 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-attachment: fixed;
+            color: #1a1a1a;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 56px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #666;
+            margin: 8px 0;
+        }
+
+        .badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 12px;
+        }
+
+        .game-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .game-container {
+            position: relative;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            /* v1에서 쓰던 거 다시 추가 */
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            display: flex;
+            /* 🔥 이 세 줄 때문에 가운데 딱 붙음 */
+            align-items: center;
+            justify-content: center;
+        }
+
+        #gameCanvas {
+            display: block;
+            max-width: 100%;
+            /* 화면 줄어들면 같이 줄어들게 */
+            height: auto;
+            aspect-ratio: 4 / 3;
+            /* 960:720 비율 유지 */
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) inset;
+            background: linear-gradient(180deg, #e3f2fd 0%, #fff9c4 100%);
+        }
+
+        .game-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .game-overlay.hidden {
+            display: none;
+        }
+
+        .start-screen {
+            text-align: center;
+            padding: 48px;
+            max-width: 500px;
+        }
+
+        .start-screen h2 {
+            font-size: 42px;
+            margin-bottom: 16px;
+        }
+
+        .start-screen p {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 32px;
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 24px 32px;
+            border: none;
+            border-radius: 16px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mode-btn.human {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .mode-btn.ai {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-4px);
+        }
+
+        .mode-btn .icon {
+            font-size: 40px;
+        }
+
+        .mode-btn .label {
+            font-size: 18px;
+        }
+
+        .mode-btn .desc {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel-card h3 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .stat-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            font-size: 18px;
+            color: #667eea;
+        }
+
+        .controls-hint {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .controls-hint h4 {
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        kbd {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-family: monospace;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+
+        .status-indicator.connected {
+            background: rgba(76, 217, 100, 0.2);
+            color: #4cd964;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .data-collection {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .data-stat {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 12px;
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* 🆕 Action Probs 패널 */
+        .action-probs-panel {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            color: white;
+            border-radius: 16px;
+            padding: 20px;
+            display: none;
+        }
+
+        .action-probs-panel.active {
+            display: block;
+        }
+
+        .action-probs-panel h4 {
+            font-size: 16px;
+            margin-bottom: 16px;
+        }
+
+        .prob-bar {
+            margin: 10px 0;
+        }
+
+        .prob-label {
+            font-size: 13px;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .prob-track {
+            background: rgba(255, 255, 255, 0.3);
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .prob-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.15s;
+        }
+
+        .prob-fill.stay {
+            background: #95a5a6;
+        }
+
+        .prob-fill.left {
+            background: #3498db;
+        }
+
+        .prob-fill.right {
+            background: #9b59b6;
+        }
+
+        .prob-fill.jump {
+            background: #e67e22;
+        }
+
+        .detection-hint {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 12px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        /* 리더보드 */
+        .leaderboard {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 30px;
+        }
+
+        .leaderboard h2 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .leaderboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .leaderboard-rank {
+            font-size: 20px;
+            font-weight: 700;
+            width: 40px;
+            text-align: center;
+            color: #667eea;
+        }
+
+        .leaderboard-rank.top1 {
+            color: #FFD700;
+            font-size: 24px;
+        }
+
+        .leaderboard-rank.top2 {
+            color: #C0C0C0;
+        }
+
+        .leaderboard-rank.top3 {
+            color: #CD7F32;
+        }
+
+        .leaderboard-info {
+            flex: 1;
+            margin-left: 12px;
+        }
+
+        .leaderboard-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .leaderboard-stats {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .leaderboard-score {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .player-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+
+        .player-badge.human {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .player-badge.ai {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        /* 모달 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-button {
+            flex: 1;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .modal-button.primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .modal-button.secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        /* 난이도 모달 */
+        .difficulty-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1001;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .difficulty-modal.active {
+            display: flex;
+        }
+
+        .difficulty-content {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .difficulty-content h3 {
+            font-size: 32px;
+            text-align: center;
+            margin-bottom: 12px;
+            color: #667eea;
+        }
+
+        .difficulty-content p {
+            text-align: center;
+            color: #666;
+            margin-bottom: 32px;
+        }
+
+        .difficulty-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .difficulty-btn {
+            border: 2px solid #e1e8ed;
+            border-radius: 16px;
+            padding: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            text-align: left;
+            transition: all 0.3s;
+        }
+
+        .difficulty-btn:hover {
+            transform: translateY(-2px);
+            border-color: #667eea;
+        }
+
+        .difficulty-btn.level1 {
+            background: linear-gradient(135deg, #a8edea, #fed6e3);
+        }
+
+        .difficulty-btn.level2 {
+            background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+        }
+
+        .difficulty-btn.level3 {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            color: white;
+        }
+
+        .difficulty-btn.level4 {
+            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+            color: white;
+        }
+
+        .difficulty-btn .icon {
+            font-size: 42px;
+            min-width: 50px;
+        }
+
+        .difficulty-btn .level-name {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .difficulty-btn .level-desc {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .difficulty-btn.level3 .level-desc,
+        .difficulty-btn.level4 .level-desc {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .difficulty-modal-close {
+            background: #e1e8ed;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            margin-top: 24px;
+            width: 100%;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .toggle-detections-btn {
+            background: #f1f3f5;
+            border: 2px solid #e1e8ed;
+            border-radius: 12px;
+            padding: 10px;
+            width: 100%;
+            margin-top: 15px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #495057;
+            transition: all 0.2s;
+        }
+
+        .toggle-detections-btn:hover {
+            background: #e9ecef;
+            border-color: #ced4da;
+        }
+
+        .toggle-detections-btn.active {
+            background: #e3f2fd;
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        /* 가상 컨트롤 */
+        .virtual-control-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 999;
+            background: rgba(102, 126, 234, 0.95);
+            border: none;
+            border-radius: 16px;
+            padding: 12px 20px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .mobile-controls {
+            display: none;
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            gap: 15px;
+        }
+
+        .mobile-controls.active {
+            display: flex;
+        }
+
+        .mobile-btn {
+            width: 70px;
+            height: 70px;
+            background: rgba(102, 126, 234, 0.95);
+            border: none;
+            border-radius: 16px;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .mobile-btn.jump {
+            background: rgba(245, 87, 108, 0.95);
+        }
+
+        .footer {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 32px;
+            text-align: center;
+        }
+
+        .footer p {
+            color: #666;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .footer strong {
+            color: #1a1a1a;
+        }
+
+        @media (max-width: 768px) {
+            .game-wrapper {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🎮 YOLO-You-Only-Live-Once</h1>
+            <p class="subtitle">Real-Time Vision-Based Game AI with YOLO + PPO</p>
+            <p class="subtitle">✨ Computer Vision • Reinforcement Learning • Deep Learning</p>
+            <span class="badge">Team Backward - Columbia Deep Learning</span>
+        </header>
+
+        <div class="game-wrapper">
+            <div class="game-container">
+                <canvas id="gameCanvas" width="960" height="720"></canvas>
+                <div id="gameOverlay" class="game-overlay">
+                    <div class="start-screen">
+                        <h2>🚀 Start Game</h2>
+                        <p>Choose your play mode</p>
+                        <div class="mode-buttons">
+                            <button id="humanModeBtn" class="mode-btn human">
+                                <span class="icon">🧑</span>
+                                <span class="label">Human Mode</span>
+                                <span class="desc">Play yourself</span>
+                            </button>
+                            <button id="aiModeBtn" class="mode-btn ai">
+                                <span class="icon">🤖</span>
+                                <span class="label">AI Mode</span>
+                                <span class="desc">YOLO + PPO</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="side-panel">
+                <div class="panel-card">
+                    <h3>📊 Game Info</h3>
+                    <div class="stat-row"><span class="stat-label">Mode</span><span class="stat-value"
+                            id="currentMode">-</span></div>
+                    <div class="stat-row"><span class="stat-label">Score</span><span class="stat-value"
+                            id="currentScore">0</span></div>
+                    <div class="stat-row"><span class="stat-label">Time</span><span class="stat-value"
+                            id="currentTime">0.0s</span></div>
+                    <div class="stat-row"><span class="stat-label">Health</span><span class="stat-value"
+                            id="currentHealth">100</span></div>
+                    <div class="stat-row">
+                        <span class="stat-label">Status</span>
+                        <span id="connectionStatus" class="status-indicator connected">
+                            <span class="status-dot"></span> Connected
+                        </span>
+                    </div>
+                </div>
+
+                <div class="panel-card action-probs-panel" id="actionProbsPanel">
+                    <h4>🧠 PPO Action Probabilities</h4>
+                    <div class="prob-bar">
+                        <div class="prob-label"><span>Stay</span><span id="probStayText">0%</span></div>
+                        <div class="prob-track">
+                            <div class="prob-fill stay" id="probStay" style="width:25%"></div>
+                        </div>
+                    </div>
+                    <div class="prob-bar">
+                        <div class="prob-label"><span>Left</span><span id="probLeftText">0%</span></div>
+                        <div class="prob-track">
+                            <div class="prob-fill left" id="probLeft" style="width:25%"></div>
+                        </div>
+                    </div>
+                    <div class="prob-bar">
+                        <div class="prob-label"><span>Right</span><span id="probRightText">0%</span></div>
+                        <div class="prob-track">
+                            <div class="prob-fill right" id="probRight" style="width:25%"></div>
+                        </div>
+                    </div>
+                    <div class="prob-bar">
+                        <div class="prob-label"><span>Jump</span><span id="probJumpText">0%</span></div>
+                        <div class="prob-track">
+                            <div class="prob-fill jump" id="probJump" style="width:25%"></div>
+                        </div>
+                    </div>
+                    <button class="toggle-detections-btn" onclick="toggleDetections()">
+                        👁️ Toggle YOLO Boxes (G)
+                    </button>
+                </div>
+
+                <div class="panel-card controls-hint">
+                    <h4>🎮 Controls</h4>
+                    <div class="control-item"><kbd>SPACE</kbd><span>Jump</span></div>
+                    <div class="control-item"><kbd>←</kbd><kbd>→</kbd><span>Move</span></div>
+                    <div class="control-item"><kbd>R</kbd><span>Restart</span></div>
+                    <div class="control-item"><kbd>G</kbd><span>Toggle YOLO Boxes</span></div>
+                </div>
+
+                <div class="panel-card data-collection">
+                    <h4>📦 Data Collection</h4>
+                    <div class="data-stat"><span>State-Action Logs</span><span id="collectedStates">0</span></div>
+                    <div class="data-stat"><span>Frame Images</span><span id="collectedImages">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="leaderboard">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h2>🏆 Leaderboard</h2>
+                <div><span id="leaderboardCount" style="color:#666;font-size:14px">Showing 0 of 0</span>
+                    <button id="loadMoreBtn" onclick="loadMoreScores()"
+                        style="display:none;padding:8px 16px;border:none;border-radius:8px;background:#667eea;color:white;cursor:pointer;margin-left:12px">Show
+                        More</button>
+                </div>
+            </div>
+            <div id="leaderboardList" class="leaderboard-grid">
+                <p style="text-align:center;color:#999;padding:40px;grid-column:1/-1">Rankings will appear here</p>
+            </div>
+        </div>
+
+        <div id="playerNameModal" class="modal">
+            <div class="modal-content">
+                <h2 class="modal-title">👤 Player Name</h2>
+                <p style="text-align:center;color:#666;margin-bottom:20px">Enter your name for the leaderboard</p>
+                <input type="text" id="playerNameInput" class="modal-input" placeholder="e.g. Minsuk Kim"
+                    maxlength="20" />
+                <div class="modal-buttons">
+                    <button class="modal-button secondary" onclick="cancelPlayerName()">Cancel</button>
+                    <button class="modal-button primary" onclick="confirmPlayerName()">Start</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="difficultyModal" class="difficulty-modal">
+            <div class="difficulty-content">
+                <h3>🤖 Choose AI Difficulty</h3>
+                <p>Level 2 = YOLO + PPO (Recommended)</p>
+                <div class="difficulty-buttons">
+                    <button class="difficulty-btn level1" data-level="1"><span class="icon">😊</span>
+                        <div>
+                            <div class="level-name">Level 1: Easy</div>
+                            <div class="level-desc">Simple heuristic</div>
+                        </div>
+                    </button>
+                    <button class="difficulty-btn level2" data-level="2"><span class="icon">🎯</span>
+                        <div>
+                            <div class="level-name">Level 2: YOLO + PPO</div>
+                            <div class="level-desc">Vision → State → Policy</div>
+                        </div>
+                    </button>
+                    <button class="difficulty-btn level3" data-level="3"><span class="icon">🔥</span>
+                        <div>
+                            <div class="level-name">Level 3: Hard</div>
+                            <div class="level-desc">PPO + Heuristic ensemble</div>
+                        </div>
+                    </button>
+                    <button class="difficulty-btn level4" data-level="4"><span class="icon">⭐</span>
+                        <div>
+                            <div class="level-name">Level 4: Expert</div>
+                            <div class="level-desc">Full ensemble</div>
+                        </div>
+                    </button>
+                </div>
+                <button class="difficulty-modal-close" onclick="closeDifficultyModal()">Cancel</button>
+            </div>
+        </div>
+
+        <button class="virtual-control-toggle" onclick="toggleVirtualControls()">🎮 Virtual Controls</button>
+        <div class="mobile-controls" id="mobileControls">
+            <button class="mobile-btn" id="mobileLeft">◀</button>
+            <button class="mobile-btn jump" id="mobileJump">▲</button>
+            <button class="mobile-btn" id="mobileRight">▶</button>
+        </div>
+
+        <footer class="footer">
+            <p><strong>Team Backward</strong> - COMS W4995 Deep Learning for Computer Vision</p>
+            <p>Jeewon Kim (jk4864) • Chloe Lee (cl4490) • Minsuk Kim (mk4434)</p>
+        </footer>
+    </div>
+
+    <!-- 게임 설정 -->
+    <script>
+        const GAME_CONFIG = {
+            width: 960,
+            height: 720,
+            player_size: 50,
+            obstacle_size: 50
+        };
+
+        // 글로벌 변수
+        let pendingGameMode = null;  // 모달에서 선택한 모드
+        let playerName = null;        // 플레이어 이름
+
+        // 플레이어 이름 모달 함수
+        function showPlayerNameModal(mode) {
+            if (mode === 'ai') {
+                // AI 모드는 이름 입력 불필요
+                playerName = null;
+                return true;
+            }
+
+            pendingGameMode = mode;
+            const modal = document.getElementById('playerNameModal');
+            const input = document.getElementById('playerNameInput');
+
+            // 저장된 이름 불러오기
+            const savedName = localStorage.getItem('playerName');
+            if (savedName) {
+                input.value = savedName;
+            }
+
+            modal.classList.add('show');
+            input.focus();
+
+            // Enter 키 처리
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    confirmPlayerName();
+                }
+            };
+
+            return false;  // 게임 시작 보류
+        }
+
+        function confirmPlayerName() {
+            const input = document.getElementById('playerNameInput');
+            const name = input.value.trim();
+
+            if (!name) {
+                alert('Please enter your name!');
+                return;
+            }
+
+            playerName = name;
+            localStorage.setItem('playerName', name);  // Save to localStorage
+
+            const modal = document.getElementById('playerNameModal');
+            modal.classList.remove('show');
+
+            // Start game
+            if (window.gameClient && pendingGameMode) {
+                window.gameClient.actuallyStartGame(pendingGameMode, playerName);
+            }
+        }
+
+        function cancelPlayerName() {
+            const modal = document.getElementById('playerNameModal');
+            modal.classList.remove('show');
+            pendingGameMode = null;
+        }
+
+        // ============================================================================
+        // AI 난이도 선택 모달
+        // ============================================================================
+
+        function showDifficultyModal(mode) {
+            pendingGameMode = mode;
+            const modal = document.getElementById('difficultyModal');
+            modal.classList.add('active');
+
+            // 난이도 버튼 클릭 이벤트
+            const difficultyButtons = document.querySelectorAll('.difficulty-btn');
+            difficultyButtons.forEach(btn => {
+                btn.onclick = function () {
+                    const level = parseInt(this.getAttribute('data-level'));
+                    selectDifficulty(level);
+                };
+            });
+        }
+
+        function selectDifficulty(level) {
+            const modal = document.getElementById('difficultyModal');
+            modal.classList.remove('active');
+
+            console.log(`🎮 AI 난이도 선택: Level ${level}`);
+
+            // AI 모드로 게임 시작 (난이도 레벨 포함)
+            if (window.gameClient && pendingGameMode) {
+                window.gameClient.actuallyStartGame(pendingGameMode, null, level);
+            }
+
+            pendingGameMode = null;
+        }
+
+        function closeDifficultyModal() {
+            const modal = document.getElementById('difficultyModal');
+            modal.classList.remove('active');
+            pendingGameMode = null;
+        }
+
+        // 리더보드 전역 변수
+        let allScores = [];
+        let displayCount = 20;  // 초기 표시 개수
+        const INCREMENT = 20;   // 더보기 시 추가 개수
+
+        // 리더보드 로드
+        function loadLeaderboard() {
+            fetch('/api/leaderboard')
+                .then(res => res.json())
+                .then(data => {
+                    allScores = data.scores || [];
+                    displayCount = 20;  // 리셋
+                    updateLeaderboard();
+                })
+                .catch(err => {
+                    console.error('리더보드 로드 실패:', err);
+                });
+        }
+
+        // 더보기 버튼 클릭
+        function loadMoreScores() {
+            displayCount += INCREMENT;
+            updateLeaderboard();
+        }
+
+        // 리더보드 UI 업데이트
+        function updateLeaderboard() {
+            const container = document.getElementById('leaderboardList');
+            const countLabel = document.getElementById('leaderboardCount');
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            const loadMoreText = document.getElementById('loadMoreText');
+
+            if (!allScores || allScores.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px; grid-column: 1 / -1;">아직 기록이 없습니다</p>';
+                countLabel.textContent = 'Showing 0 of 0';
+                loadMoreBtn.style.display = 'none';
+                return;
+            }
+
+            // 표시할 개수 제한
+            const scoresToShow = allScores.slice(0, Math.min(displayCount, allScores.length));
+            const hasMore = displayCount < allScores.length;
+
+            // 카운트 업데이트
+            countLabel.textContent = `Showing ${scoresToShow.length} of ${allScores.length}`;
+
+            // 더보기 버튼 표시/숨김
+            if (hasMore) {
+                loadMoreBtn.style.display = 'block';
+                const remaining = allScores.length - displayCount;
+                loadMoreText.textContent = `Show ${Math.min(remaining, INCREMENT)} More`;
+            } else {
+                loadMoreBtn.style.display = 'none';
+            }
+
+            // 리더보드 렌더링
+            container.innerHTML = scoresToShow.map((entry, index) => {
+                const rank = index + 1;
+                let rankClass = '';
+                let rankEmoji = `${rank}`;
+
+                if (rank === 1) {
+                    rankClass = 'top1';
+                    rankEmoji = '🥇';
+                } else if (rank === 2) {
+                    rankClass = 'top2';
+                    rankEmoji = '🥈';
+                } else if (rank === 3) {
+                    rankClass = 'top3';
+                    rankEmoji = '🥉';
+                }
+
+                // Human vs AI 구분
+                const modeLabel = entry.mode === 'human' ? 'human' : 'ai';
+                const modeText = entry.mode === 'human' ? '👤' : '🤖';
+
+                // date 필드 사용 (timestamp 아님)
+                const dateStr = entry.date ? new Date(entry.date).toLocaleDateString('ko-KR', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }) : 'N/A';
+
+                return `
+                    <div class="leaderboard-item">
+                        <div class="leaderboard-rank ${rankClass}">${rankEmoji}</div>
+                        <div class="leaderboard-info">
+                            <div class="leaderboard-name">
+                                ${entry.player}
+                                <span class="player-badge ${modeLabel}">${modeText} ${modeLabel}</span>
+                            </div>
+                            <div class="leaderboard-stats">
+                                ${entry.time.toFixed(1)}초 생존 • ${dateStr}
+                            </div>
+                        </div>
+                        <div class="leaderboard-score">${entry.score}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 페이지 로드 시 리더보드 로드
+        window.addEventListener('DOMContentLoaded', () => {
+            loadLeaderboard();
+            // 5초마다 리더보드 자동 갱신
+            setInterval(loadLeaderboard, 5000);
+        });
+    </script>
+
+    <!-- 게임 클라이언트 -->
+    <script>
+        class SimpleGameClient {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.socket = io();
+
+                this.gameState = null;
+                this.currentMode = null;
+                this.isRunning = false;
+                this.lastLogTime = 0;
+                this.particles = [];  // ⭐ 파티클 효과용
+                this.playerName = null;  // 플레이어 이름
+
+                // 키보드 상태
+                this.keys = {
+                    left: false,
+                    right: false
+                };
+
+                // 키 누른 시간 추적
+                this.keyPressTime = {
+                    left: 0,
+                    right: 0
+                };
+
+                // 길게 누르기 임계값 (밀리초)
+                this.longPressThreshold = 150;  // 150ms 이상 누르면 "길게 누르기"
+
+                // 연속 이동 인터벌
+                this.moveInterval = null;
+
+                // 글로벌 참조 (모달에서 접근)
+                window.gameClient = this;
+
+                this.init();
+            }
+
+            init() {
+                console.log('🎮 게임 클라이언트 초기화 중...');
+
+                // 버튼 요소 확인
+                const humanBtn = document.getElementById('humanModeBtn');
+                const aiBtn = document.getElementById('aiModeBtn');
+
+                console.log('🔍 버튼 요소 확인:', {
+                    humanBtn: humanBtn ? '✅ 존재' : '❌ 없음',
+                    aiBtn: aiBtn ? '✅ 존재' : '❌ 없음'
+                });
+
+                // 버튼 이벤트
+                if (humanBtn) {
+                    humanBtn.addEventListener('click', (e) => {
+                        console.log('👤 Human Mode 버튼 클릭됨!');
+                        e.preventDefault();
+                        this.startGameWithModal('human');
+                    });
+                    console.log('✅ Human 버튼 이벤트 등록됨');
+                } else {
+                    console.error('❌ humanModeBtn 요소를 찾을 수 없습니다!');
+                }
+
+                if (aiBtn) {
+                    aiBtn.addEventListener('click', (e) => {
+                        console.log('🤖 AI Mode 버튼 클릭됨!');
+                        e.preventDefault();
+                        this.startGameWithModal('ai');
+                    });
+                    console.log('✅ AI 버튼 이벤트 등록됨');
+                } else {
+                    console.error('❌ aiModeBtn 요소를 찾을 수 없습니다!');
+                }
+
+                // 키보드 이벤트
+                document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+                document.addEventListener('keyup', (e) => this.handleKeyUp(e));
+
+                // 소켓 이벤트
+                this.socket.on('connect', () => {
+                    console.log('✅ Server connected');
+                    document.getElementById('connectionStatus').innerHTML = '<span class="status-dot"></span> Connected';
+                    document.getElementById('connectionStatus').className = 'status-indicator connected';
+                });
+
+                this.socket.on('disconnect', () => {
+                    console.log('❌ Server disconnected');
+                    document.getElementById('connectionStatus').innerHTML = '<span class="status-dot"></span> Disconnected';
+                    document.getElementById('connectionStatus').className = 'status-indicator disconnected';
+                });
+
+                this.socket.on('game_started', (data) => {
+                    console.log('🎮 게임 시작:', data);
+                    this.currentMode = data.state ? data.state.mode : 'human';
+                    this.isRunning = true;
+                    this.particles = []; // ⭐ 파티클 초기화
+                    document.getElementById('gameOverlay').classList.add('hidden');
+                    document.getElementById('currentMode').textContent = this.currentMode === 'human' ? '👤 Human' : '🤖 AI';
+
+                    // 초기 상태 설정
+                    if (data.state) {
+                        this.gameState = data.state;
+                        this.render();
+                        this.updateUI();
+                    }
+                });
+
+                // game_state와 game_update 둘 다 처리
+                this.socket.on('game_state', (data) => {
+                    console.log('📦 게임 상태 수신 (game_state):', data);
+                    this.gameState = data.state || data;
+                    this.render();
+                    this.updateUI();
+                });
+
+                this.socket.on('game_update', (data) => {
+                    // 상세한 데이터 로깅 (첫 3개만)
+                    if (this.isRunning && (!this.lastLogTime || Date.now() - this.lastLogTime > 1000)) {
+                        console.log('📦 게임 상태 수신 (game_update):', {
+                            data: data,
+                            hasState: !!data.state,
+                            hasPlayer: !!(data.state && data.state.player),
+                            playerData: data.state ? data.state.player : data.player
+                        });
+                        this.lastLogTime = Date.now();
+                    }
+
+                    this.gameState = data.state || data;
+                    this.render();
+                    this.updateUI();
+
+                    // 📸 프레임 캡처 (10프레임마다 = 3 FPS 샘플링)
+                    // CV 모델 훈련용 데이터 수집
+                    if (this.gameState.frame % 10 === 0) {
+                        this.captureFrame();
+                    }
+                });
+
+                this.socket.on('game_over', (data) => {
+                    console.log('💀 Game Over:', data);
+                    this.showGameOver(data);
+                    // Refresh leaderboard after game over
+                    loadLeaderboard();
+                });
+
+                console.log('✅ Game client initialized!');
+            }
+
+            startGameWithModal(mode) {
+                // Human 모드면 이름 입력 모달 표시
+                if (mode === 'human') {
+                    showPlayerNameModal(mode);
+                } else {
+                    // AI 모드는 난이도 선택 모달 표시
+                    showDifficultyModal(mode);
+                }
+            }
+
+            actuallyStartGame(mode, name, aiLevel = 2) {
+                this.playerName = name;
+
+                console.log(`🚀 ${mode} 모드로 게임 시작 요청`);
+                console.log(`👤 플레이어 이름: ${name || 'AI'}`);
+                console.log(`🤖 AI 난이도: ${aiLevel}`);
+                console.log(`📡 Socket 연결 상태: ${this.socket.connected}`);
+                console.log(`📤 start_game 이벤트 전송 중...`);
+
+                this.socket.emit('start_game', {
+                    mode: mode,
+                    player_name: name,
+                    ai_level: aiLevel
+                }, (response) => {
+                    console.log('✅ start_game 이벤트 전송 완료! 응답:', response);
+                });
+
+                console.log('📮 emit() 호출 완료');
+            }
+
+            handleKeyDown(e) {
+                if (!this.isRunning || this.currentMode !== 'human') return;
+
+                // 이동 키 처리
+                if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                    if (!this.keys.left) {
+                        // 첫 번째 눌림: 즉시 한 번 이동
+                        this.socket.emit('player_action', { action: 'left' });
+                        this.keys.left = true;
+                        this.keyPressTime.left = Date.now();
+
+                        // 길게 누르기 감지 시작
+                        setTimeout(() => {
+                            if (this.keys.left) {
+                                this.startContinuousMove('left');
+                            }
+                        }, this.longPressThreshold);
+                    }
+                    e.preventDefault();
+                }
+
+                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                    if (!this.keys.right) {
+                        // 첫 번째 눌림: 즉시 한 번 이동
+                        this.socket.emit('player_action', { action: 'right' });
+                        this.keys.right = true;
+                        this.keyPressTime.right = Date.now();
+
+                        // 길게 누르기 감지 시작
+                        setTimeout(() => {
+                            if (this.keys.right) {
+                                this.startContinuousMove('right');
+                            }
+                        }, this.longPressThreshold);
+                    }
+                    e.preventDefault();
+                }
+
+                // 점프는 즉시 전송 (한 번만)
+                if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+                    this.socket.emit('player_action', { action: 'jump' });
+                    e.preventDefault();
+                }
+
+                // 재시작
+                if (e.key === 'r' || e.key === 'R') {
+                    this.startGame(this.currentMode);
+                }
+
+                // YOLO Detection Toggle (G)
+                if (e.key === 'g' || e.key === 'G') {
+                    this.socket.emit('toggle_detections');
+                }
+            }
+
+            startContinuousMove(direction) {
+                // 이미 연속 이동 중이면 취소
+                if (this.moveInterval) {
+                    clearInterval(this.moveInterval);
+                }
+
+                // 50ms마다 액션 전송 (부드러운 연속 이동)
+                this.moveInterval = setInterval(() => {
+                    if ((direction === 'left' && this.keys.left) ||
+                        (direction === 'right' && this.keys.right)) {
+                        this.socket.emit('player_action', { action: direction });
+                    } else {
+                        // 키를 떼면 인터벌 중지
+                        clearInterval(this.moveInterval);
+                        this.moveInterval = null;
+                    }
+                }, 50);
+            }
+
+            handleKeyUp(e) {
+                if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                    this.keys.left = false;
+                    this.keyPressTime.left = 0;
+
+                    // 연속 이동 중지
+                    if (this.moveInterval) {
+                        clearInterval(this.moveInterval);
+                        this.moveInterval = null;
+                    }
+                }
+                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                    this.keys.right = false;
+                    this.keyPressTime.right = 0;
+
+                    // 연속 이동 중지
+                    if (this.moveInterval) {
+                        clearInterval(this.moveInterval);
+                        this.moveInterval = null;
+                    }
+                }
+            }
+
+            getActionFromKey(key) {
+                const keyMap = {
+                    ' ': 'jump',
+                    'ArrowUp': 'jump',
+                    'ArrowLeft': 'left',
+                    'ArrowRight': 'right',
+                    'a': 'left',
+                    'A': 'left',
+                    'd': 'right',
+                    'D': 'right'
+                };
+                return keyMap[key];
+            }
+
+            renderObs(obs) {
+                const ctx = this.ctx;
+                const objType = obs.type || 'meteor';
+
+                if (objType === 'star') {
+                    // ⭐ 별: 노란색 + 별 모양
+                    ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
+                    ctx.shadowBlur = 20;
+
+                    const gradient = ctx.createRadialGradient(
+                        obs.x + obs.size / 2, obs.y + obs.size / 2, 0,
+                        obs.x + obs.size / 2, obs.y + obs.size / 2, obs.size
+                    );
+                    gradient.addColorStop(0, '#FFD700');
+                    gradient.addColorStop(1, '#FFA500');
+                    ctx.fillStyle = gradient;
+
+                    // 별 모양 그리기
+                    const centerX = obs.x + obs.size / 2;
+                    const centerY = obs.y + obs.size / 2;
+                    const spikes = 5;
+                    const outerRadius = obs.size / 2;
+                    const innerRadius = obs.size / 4;
+
+                    ctx.beginPath();
+                    for (let i = 0; i < spikes * 2; i++) {
+                        const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                        const angle = (Math.PI * i) / spikes;
+                        const x = centerX + Math.cos(angle - Math.PI / 2) * radius;
+                        const y = centerY + Math.sin(angle - Math.PI / 2) * radius;
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+
+                } else {
+                    // 💥 메테오: 실제 불타는 운석 + 꼬리 효과 (낙하 방향 반영)
+                    const centerX = obs.x + obs.size / 2;
+                    const centerY = obs.y + obs.size / 2;
+                    const radius = obs.size / 2;
+
+                    // 메테오 이동 방향 계산 (vx, vy 사용)
+                    const vx = obs.vx || 0;
+                    const vy = obs.vy || 5;
+
+                    // 꼬리 방향: 이동 방향의 반대
+                    const tailLength = radius * 3;
+                    const tailAngle = Math.atan2(-vy, -vx);  // 반대 방향
+                    const tailEndX = centerX + Math.cos(tailAngle) * tailLength;
+                    const tailEndY = centerY + Math.sin(tailAngle) * tailLength;
+
+                    // 🔥 불타는 꼬리 효과 (이동 방향 반대로)
+                    const tailGradient = ctx.createLinearGradient(
+                        tailEndX, tailEndY,
+                        centerX, centerY
+                    );
+                    tailGradient.addColorStop(0, 'rgba(255, 69, 0, 0)');
+                    tailGradient.addColorStop(0.3, 'rgba(255, 140, 0, 0.3)');
+                    tailGradient.addColorStop(0.6, 'rgba(255, 215, 0, 0.6)');
+                    tailGradient.addColorStop(1, 'rgba(255, 255, 255, 0.8)');
+
+                    ctx.fillStyle = tailGradient;
+                    ctx.beginPath();
+                    // 불꽃 꼬리 (삼각형 모양, 이동 방향 반대로)
+                    const perpAngle = tailAngle + Math.PI / 2;
+                    ctx.moveTo(tailEndX, tailEndY);
+                    ctx.lineTo(
+                        centerX + Math.cos(perpAngle) * radius * 0.6,
+                        centerY + Math.sin(perpAngle) * radius * 0.6
+                    );
+                    ctx.lineTo(
+                        centerX - Math.cos(perpAngle) * radius * 0.6,
+                        centerY - Math.sin(perpAngle) * radius * 0.6
+                    );
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 불꽃 파티클 (꼬리 주변, 이동 방향 반대로)
+                    for (let i = 0; i < 5; i++) {
+                        const particleDistance = tailLength * 0.3 + Math.random() * tailLength * 0.4;
+                        const particleAngle = tailAngle + (Math.random() - 0.5) * 0.5;
+                        const particleX = centerX + Math.cos(particleAngle) * particleDistance;
+                        const particleY = centerY + Math.sin(particleAngle) * particleDistance;
+                        const particleSize = Math.random() * 4 + 2;
+                        const alpha = Math.random() * 0.5 + 0.3;
+
+                        ctx.fillStyle = `rgba(255, ${150 + Math.random() * 100}, 0, ${alpha})`;
+                        ctx.beginPath();
+                        ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    // 외부 불꽃 광채 (메테오 본체 주변)
+                    ctx.shadowColor = 'rgba(255, 100, 0, 1)';
+                    ctx.shadowBlur = 30;
+
+                    const flameGradient = ctx.createRadialGradient(
+                        centerX, centerY, radius * 0.2,
+                        centerX, centerY, radius * 1.4
+                    );
+                    flameGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+                    flameGradient.addColorStop(0.3, 'rgba(255, 215, 0, 0.7)');
+                    flameGradient.addColorStop(0.6, 'rgba(255, 140, 0, 0.4)');
+                    flameGradient.addColorStop(0.8, 'rgba(255, 69, 0, 0.2)');
+                    flameGradient.addColorStop(1, 'rgba(139, 0, 0, 0)');
+
+                    ctx.fillStyle = flameGradient;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius * 1.3, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 메테오 본체 (울퉁불퉁한 바위)
+                    ctx.shadowBlur = 15;
+                    const meteorGradient = ctx.createRadialGradient(
+                        centerX - radius * 0.3, centerY - radius * 0.3, radius * 0.1,
+                        centerX, centerY, radius
+                    );
+                    meteorGradient.addColorStop(0, '#8B4513');  // 밝은 갈색
+                    meteorGradient.addColorStop(0.4, '#654321'); // 중간 갈색
+                    meteorGradient.addColorStop(0.7, '#3E2723'); // 어두운 갈색
+                    meteorGradient.addColorStop(1, '#1A1A1A');   // 거의 검은색
+
+                    ctx.fillStyle = meteorGradient;
+                    ctx.beginPath();
+
+                    // 울퉁불퉁한 원형 (실제 운석처럼)
+                    const bumps = 10;
+                    for (let i = 0; i <= bumps; i++) {
+                        const angle = (Math.PI * 2 * i) / bumps;
+                        // 각 지점마다 랜덤한 반경 (울퉁불퉁)
+                        const bumpFactor = 0.8 + Math.sin(i * 3.7) * 0.15 + Math.cos(i * 2.3) * 0.1;
+                        const bumpRadius = radius * bumpFactor;
+                        const x = centerX + Math.cos(angle) * bumpRadius;
+                        const y = centerY + Math.sin(angle) * bumpRadius;
+
+                        if (i === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 표면 균열 효과 (여러 개)
+                    ctx.shadowBlur = 0;
+                    ctx.strokeStyle = 'rgba(255, 100, 0, 0.9)';
+                    ctx.lineWidth = 2.5;
+
+                    // 균열 1
+                    ctx.beginPath();
+                    ctx.moveTo(centerX - radius * 0.5, centerY - radius * 0.4);
+                    ctx.lineTo(centerX - radius * 0.1, centerY - radius * 0.1);
+                    ctx.lineTo(centerX + radius * 0.2, centerY + radius * 0.3);
+                    ctx.stroke();
+
+                    // 균열 2
+                    ctx.beginPath();
+                    ctx.moveTo(centerX + radius * 0.4, centerY - radius * 0.3);
+                    ctx.lineTo(centerX + radius * 0.1, centerY + radius * 0.1);
+                    ctx.lineTo(centerX - radius * 0.3, centerY + radius * 0.4);
+                    ctx.stroke();
+
+                    // 밝게 타는 부분 (흰색-노란색 점)
+                    ctx.fillStyle = 'rgba(255, 255, 200, 0.9)';
+                    ctx.beginPath();
+                    ctx.arc(centerX - radius * 0.2, centerY - radius * 0.1, radius * 0.15, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            renderDetections(detections) {
+                if (!detections || detections.length === 0) return;
+
+                const ctx = this.ctx;
+                ctx.save();
+                ctx.lineWidth = 2;
+                ctx.font = 'bold 14px Arial';
+
+                detections.forEach(det => {
+                    // Use bbox for pixel coordinates [x1, y1, x2, y2]
+                    // app.py sends: bbox: [x1, y1, x2, y2]
+                    if (!det.bbox) return;
+
+                    const [x1, y1, x2, y2] = det.bbox;
+                    const width = x2 - x1;
+                    const height = y2 - y1;
+
+                    // Use class_name and conf
+                    const className = det.class_name || 'unknown';
+                    const confidence = det.conf || 0;
+
+                    // YOLO 박스 그리기
+                    let color = '#FFFFFF';
+                    if (className === 'player') color = '#00FF00';
+                    else if (className === 'meteor') color = '#FF4500';
+                    else if (className === 'star') color = '#FFFF00';
+                    else if (className === 'caution_lava') color = '#FFA500';
+                    else if (className === 'exist_lava') color = '#FF4500';
+
+                    ctx.strokeStyle = color;
+                    ctx.fillStyle = color;
+
+                    // 박스
+                    ctx.strokeRect(x1, y1, width, height);
+
+                    // 라벨 배경
+                    const label = `${className} ${Math.round(confidence * 100)}%`;
+                    const textWidth = ctx.measureText(label).width;
+
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    ctx.fillRect(x1, y1 - 20, textWidth + 10, 20);
+
+                    // 라벨 텍스트
+                    ctx.fillStyle = color;
+                    ctx.fillText(label, x1 + 5, y1 - 5);
+                });
+
+                ctx.restore();
+            }
+
+            createStarEffect(x, y) {
+                // 별 획득 시 파티클 생성
+                const particleCount = 20;
+                for (let i = 0; i < particleCount; i++) {
+                    const angle = (Math.PI * 2 * i) / particleCount;
+                    const speed = 2 + Math.random() * 3;
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        life: 1.0,  // 수명
+                        size: 3 + Math.random() * 5,
+                        color: ['#FFD700', '#FFA500', '#FFFF00'][Math.floor(Math.random() * 3)]
+                    });
+                }
+            }
+
+            renderParticles() {
+                const ctx = this.ctx;
+
+                // 파티클 업데이트 & 렌더링
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+
+                    // 위치 업데이트
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.2;  // 중력
+                    p.life -= 0.02;  // 수명 감소
+
+                    // 수명 끝나면 제거
+                    if (p.life <= 0) {
+                        this.particles.splice(i, 1);
+                        continue;
+                    }
+
+                    // 렌더링
+                    ctx.save();
+                    ctx.globalAlpha = p.life;
+                    ctx.fillStyle = p.color;
+                    ctx.shadowColor = p.color;
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            render() {
+                if (!this.gameState) {
+                    console.warn('⚠️ gameState가 없습니다');
+                    return;
+                }
+
+                // 데이터 유효성 검증
+                if (!this.gameState.player || typeof this.gameState.player.x !== 'number' || isNaN(this.gameState.player.x)) {
+                    console.error('❌ 플레이어 데이터가 유효하지 않습니다:', this.gameState);
+                    return;
+                }
+
+                const ctx = this.ctx;
+                const player = this.gameState.player;
+                const obstacles = this.gameState.obstacles || [];
+
+                // 매 렌더링마다 카운터 증가 (디버깅)
+                if (!this.renderCount) this.renderCount = 0;
+                this.renderCount++;
+
+                if (this.renderCount % 30 == 1) {
+                    console.log(`🎨 render() #${this.renderCount}: player=(${player.x}, ${player.y}), obstacles=${obstacles.length}`);
+                }
+
+                // 배경 (그라데이션)
+                const gradient = ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+                gradient.addColorStop(0, '#e3f2fd');
+                gradient.addColorStop(1, '#fff9c4');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // 🌋 용암지대 먼저 렌더링 (플레이어 아래에)
+                if (this.gameState.lava) {
+                    this.renderLava(this.gameState.lava);
+                }
+
+                // 플레이어 (현대적 스타일) - 체력바 포함 (용암 위에)
+                try {
+                    ctx.save();
+                    ctx.shadowColor = 'rgba(102, 126, 234, 0.5)';
+                    ctx.shadowBlur = 20;
+                    ctx.shadowOffsetY = 5;
+
+                    const gradient2 = ctx.createLinearGradient(
+                        player.x,
+                        player.y,
+                        player.x,
+                        player.y + player.size
+                    );
+                    gradient2.addColorStop(0, '#667eea');
+                    gradient2.addColorStop(1, '#764ba2');
+                    ctx.fillStyle = gradient2;
+
+                    ctx.beginPath();
+                    ctx.roundRect(
+                        player.x,
+                        player.y,
+                        player.size,
+                        player.size,
+                        10
+                    );
+                    ctx.fill();
+
+                    // 💚 체력바 (플레이어 위에)
+                    const health = player.health || 100;
+                    const healthBarWidth = player.size;
+                    const healthBarHeight = 6;
+                    const healthBarX = player.x;
+                    const healthBarY = player.y - 12;
+
+                    // 체력바 배경 (검은색)
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+
+                    // 체력바 (초록 → 노랑 → 빨강)
+                    const healthPercent = health / 100;
+                    let healthColor;
+                    if (healthPercent > 0.6) {
+                        healthColor = '#4CAF50';  // 초록
+                    } else if (healthPercent > 0.3) {
+                        healthColor = '#FFC107';  // 노랑
+                    } else {
+                        healthColor = '#F44336';  // 빨강
+                    }
+
+                    ctx.fillStyle = healthColor;
+                    ctx.fillRect(healthBarX, healthBarY, healthBarWidth * healthPercent, healthBarHeight);
+
+                    // 체력바 테두리
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+
+                    ctx.restore();
+                } catch (e) {
+                    console.error('❌ 플레이어 렌더링 오류:', e);
+                }
+
+                // 장애물 렌더링 (메테오 & 별)
+                obstacles.forEach((obs, index) => {
+                    if (!obs || typeof obs.x !== 'number' || isNaN(obs.x)) {
+                        console.warn(`⚠️ 객체 ${index} 데이터가 유효하지 않습니다:`, obs);
+                        return;
+                    }
+                    try {
+                        ctx.save();
+                        this.renderObs(obs);
+                        ctx.restore();
+                    } catch (e) {
+                        console.error(`❌ 객체 ${index} 렌더링 오류:`, e, obs);
+                    }
+                });
+
+                // ⭐ 파티클 렌더링 (별 획득 이펙트)
+                this.renderParticles();
+
+                // ⭐ 별 획득 감지 & 파티클 생성 (서버의 star_collected 플래그 확인)
+                if (this.gameState.star_collected) {
+                    const player = this.gameState.player;
+                    this.createStarEffect(player.x + player.size / 2, player.y + player.size / 2);
+                }
+
+                // 👁️ YOLO 감지 박스 렌더링 (서버에서 보낸 경우)
+                if (this.gameState.detections) {
+                    this.renderDetections(this.gameState.detections);
+                }
+            }
+
+            renderLava(lavaData) {
+                const ctx = this.ctx;
+                const lavaHeight = lavaData.height;
+                const lavaYStart = this.canvas.height - lavaHeight;
+                const lavaXStart = lavaData.zone_x;
+                const lavaWidth = lavaData.zone_width;
+
+                // 용암 상태에 따른 렌더링
+                if (lavaData.state === 'warning') {
+                    // ⚠️ 경고 단계: 해당 영역만 깜빡이는 경고
+                    const alpha = (Math.sin(Date.now() / 200) + 1) / 2;  // 0~1 사이로 깜빡임
+                    ctx.save();
+
+                    // 경고 영역 표시 (반투명 빨간색)
+                    ctx.fillStyle = `rgba(255, 69, 0, ${alpha * 0.4 + 0.2})`;
+                    ctx.fillRect(lavaXStart, lavaYStart, lavaWidth, lavaHeight);
+
+                    // 경고 테두리 (굵은 선)
+                    ctx.strokeStyle = `rgba(255, 0, 0, ${alpha * 0.8 + 0.2})`;
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(lavaXStart, lavaYStart, lavaWidth, lavaHeight);
+
+                    // 경고 텍스트 (해당 영역 중앙에)
+                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                    ctx.font = 'bold 20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('⚠️ LAVA ⚠️', lavaXStart + lavaWidth / 2, lavaYStart + 40);
+                    ctx.fillText(`${lavaData.timer.toFixed(1)}s`, lavaXStart + lavaWidth / 2, lavaYStart + 70);
+                    ctx.restore();
+
+                } else if (lavaData.state === 'active') {
+                    // 🌋 활성 단계: 해당 영역만 밝은 주황색 용암
+                    ctx.save();
+
+                    // 용암 그라데이션 (해당 영역만)
+                    const gradient = ctx.createLinearGradient(0, lavaYStart, 0, this.canvas.height);
+                    gradient.addColorStop(0, '#FF4500');
+                    gradient.addColorStop(0.5, '#FF6347');
+                    gradient.addColorStop(1, '#DC143C');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(lavaXStart, lavaYStart, lavaWidth, lavaHeight);
+
+                    // 용암 효과 (파동, 해당 영역만)
+                    ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    const waveOffset = (Date.now() / 10) % 100;
+                    for (let x = lavaXStart; x < lavaXStart + lavaWidth; x += 30) {
+                        const y = lavaYStart + Math.sin((x + waveOffset) / 15) * 12;
+                        if (x === lavaXStart) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    ctx.stroke();
+
+                    // 용암 거품 효과
+                    for (let i = 0; i < 5; i++) {
+                        const bubbleX = lavaXStart + (lavaWidth / 5) * i + ((Date.now() / 50 + i * 20) % 30);
+                        const bubbleY = lavaYStart + 30 + Math.sin((Date.now() / 100 + i)) * 20;
+                        ctx.fillStyle = 'rgba(255, 140, 0, 0.4)';
+                        ctx.beginPath();
+                        ctx.arc(bubbleX, bubbleY, 8, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    // 남은 시간 표시 (해당 영역 중앙에)
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                    ctx.font = 'bold 24px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                    ctx.shadowBlur = 4;
+                    ctx.fillText(`🔥 ${lavaData.timer.toFixed(1)}s`, lavaXStart + lavaWidth / 2, lavaYStart + 40);
+
+                    ctx.restore();
+                }
+            }
+
+
+
+            updateUI() {
+                if (!this.gameState) {
+                    console.warn('⚠️ updateUI: gameState가 없습니다');
+                    return;
+                }
+
+                // 디버깅: UI 업데이트 로그
+                if (!this.lastUILog || Date.now() - this.lastUILog > 2000) {
+                    console.log('🎯 updateUI 호출:', {
+                        score: this.gameState.score,
+                        time: this.gameState.time,
+                        frame: this.gameState.frame,
+                        mode: this.gameState.mode
+                    });
+                    this.lastUILog = Date.now();
+                }
+
+                document.getElementById('currentScore').textContent = this.gameState.score;
+                document.getElementById('currentTime').textContent = (this.gameState.time || 0).toFixed(1) + 's';
+                document.getElementById('currentHealth').textContent = this.gameState.player ? Math.round(this.gameState.player.health || 100) : 0;
+
+                // 실제 수집된 데이터 개수 표시 (게임 프레임 카운터가 아님)
+                document.getElementById('collectedStates').textContent = this.gameState.collected_states_count || 0;
+                document.getElementById('collectedImages').textContent = this.gameState.collected_images_count || 0;
+
+                // 🧠 Action Probabilities 업데이트 (AI 모드일 때만)
+                const probsPanel = document.getElementById('actionProbsPanel');
+                if (this.gameState.action_probs) {
+                    probsPanel.classList.add('active');
+                    const probs = this.gameState.action_probs;
+
+                    // Stay, Left, Right, Jump 순서라고 가정 (서버 구현에 따라 다름)
+                    // 보통: 0: Stay, 1: Left, 2: Right, 3: Jump
+                    const pStay = Math.round((probs[0] || 0) * 100);
+                    const pLeft = Math.round((probs[1] || 0) * 100);
+                    const pRight = Math.round((probs[2] || 0) * 100);
+                    const pJump = Math.round((probs[3] || 0) * 100);
+
+                    document.getElementById('probStay').style.width = `${pStay}%`;
+                    document.getElementById('probStayText').textContent = `${pStay}%`;
+
+                    document.getElementById('probLeft').style.width = `${pLeft}%`;
+                    document.getElementById('probLeftText').textContent = `${pLeft}%`;
+
+                    document.getElementById('probRight').style.width = `${pRight}%`;
+                    document.getElementById('probRightText').textContent = `${pRight}%`;
+
+                    document.getElementById('probJump').style.width = `${pJump}%`;
+                    document.getElementById('probJumpText').textContent = `${pJump}%`;
+                } else {
+                    probsPanel.classList.remove('active');
+                }
+            }
+
+            captureFrame() {
+                if (!this.canvas || !this.isRunning) return;
+
+                try {
+                    // Canvas를 Base64 PNG로 인코딩
+                    const imageData = this.canvas.toDataURL('image/png', 0.8);  // 80% 품질
+
+                    // 서버로 전송
+                    this.socket.emit('frame_capture', {
+                        image: imageData,
+                        frame: this.gameState.frame
+                    });
+
+                    // 디버깅 (30프레임마다)
+                    if (this.gameState.frame % 30 === 0) {
+                        console.log(`📸 프레임 캡처: #${this.gameState.frame}`);
+                    }
+                } catch (e) {
+                    console.error('❌ 프레임 캡처 오류:', e);
+                }
+            }
+
+            showGameOver(data) {
+                this.isRunning = false;
+
+                // Include leaderboard info
+                let message = `Game Over!\n\nScore: ${data.score}\nTime: ${data.time.toFixed(1)}s\nPlayer: ${data.player_name || 'Unknown'}`;
+
+                if (data.leaderboard && data.leaderboard.length > 0) {
+                    message += '\n\n🏆 Leaderboard TOP 5:\n';
+                    data.leaderboard.slice(0, 5).forEach((entry, index) => {
+                        message += `${index + 1}. ${entry.player}: ${entry.score} pts (${entry.time}s)\n`;
+                    });
+                }
+
+                alert(message);
+
+                // Show game overlay (can restart)
+                document.getElementById('gameOverlay').classList.remove('hidden');
+            }
+        }
+
+        function toggleDetections() {
+            if (window.gameClient && window.gameClient.socket) {
+                window.gameClient.socket.emit('toggle_detections');
+
+                // 버튼 시각적 피드백
+                const btn = document.querySelector('.toggle-detections-btn');
+                if (btn) {
+                    btn.classList.toggle('active');
+                }
+            }
+        }
+
+        // 가상 컨트롤 토글 함수
+        let virtualControlsEnabled = false;
+
+        function toggleVirtualControls() {
+            virtualControlsEnabled = !virtualControlsEnabled;
+            const controls = document.getElementById('mobileControls');
+            const toggleBtn = document.getElementById('virtualControlToggle');
+            const toggleText = document.getElementById('toggleText');
+
+            if (virtualControlsEnabled) {
+                controls.classList.add('active');
+                toggleBtn.classList.add('active');
+                toggleText.textContent = 'Hide Controls';
+                localStorage.setItem('virtualControls', 'enabled');
+                console.log('🎮 Virtual controls enabled');
+            } else {
+                controls.classList.remove('active');
+                toggleBtn.classList.remove('active');
+                toggleText.textContent = 'Virtual Controls';
+                localStorage.setItem('virtualControls', 'disabled');
+                console.log('🎮 Virtual controls disabled');
+            }
+        }
+
+        // 버튼 이벤트 핸들러 (마우스 + 터치 모두 지원, 짧게/길게 누르기 구분)
+        function setupControlButton(buttonId, action) {
+            const button = document.getElementById(buttonId);
+            if (!button) return;
+
+            let pressInterval = null;
+            let pressTimeout = null;
+            const longPressThreshold = 150;  // 150ms
+
+            // 누르기 시작
+            function startPress() {
+                if (window.gameClient && window.gameClient.socket) {
+                    // 즉시 한 번 전송 (짧게 누르기)
+                    window.gameClient.socket.emit('player_action', { action: action });
+
+                    // 150ms 후에 길게 누르기 판단
+                    pressTimeout = setTimeout(() => {
+                        // 길게 누르면 계속 전송 (50ms마다)
+                        pressInterval = setInterval(() => {
+                            if (window.gameClient && window.gameClient.socket) {
+                                window.gameClient.socket.emit('player_action', { action: action });
+                            }
+                        }, 50);
+                    }, longPressThreshold);
+                }
+            }
+
+            // 누르기 종료
+            function stopPress() {
+                if (pressTimeout) {
+                    clearTimeout(pressTimeout);
+                    pressTimeout = null;
+                }
+                if (pressInterval) {
+                    clearInterval(pressInterval);
+                    pressInterval = null;
+                }
+            }
+
+            // 마우스 이벤트
+            button.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                startPress();
+            });
+
+            button.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                stopPress();
+            });
+
+            button.addEventListener('mouseleave', (e) => {
+                stopPress();  // 마우스가 버튼을 벗어나면 중지
+            });
+
+            // 터치 이벤트
+            button.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startPress();
+            });
+
+            button.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                stopPress();
+            });
+
+            button.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                stopPress();  // 터치가 취소되면 중지
+            });
+        }
+
+        // 게임 클라이언트 시작
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Page loaded, starting game client!');
+            const game = new SimpleGameClient();
+
+            // 가상 컨트롤 버튼 이벤트 설정
+            setupControlButton('mobileLeft', 'left');
+            setupControlButton('mobileRight', 'right');
+            setupControlButton('mobileJump', 'jump');
+
+            // 저장된 설정 불러오기
+            const savedSetting = localStorage.getItem('virtualControls');
+            if (savedSetting === 'enabled') {
+                toggleVirtualControls();
+            }
+
+            console.log('✅ Virtual controls initialized');
+        });
+    </script>
+</body>
+
+</html>

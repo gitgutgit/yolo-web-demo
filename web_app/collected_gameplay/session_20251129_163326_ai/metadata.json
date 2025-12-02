@@ -1,0 +1,14 @@
+{
+  "session_id": "YrdChFmE8yAwyiJ_AAAB",
+  "mode": "ai",
+  "score": 26,
+  "survival_time": 28.101379871368408,
+  "total_frames": 744,
+  "final_state": {
+    "player_x": 910,
+    "player_y": 670,
+    "obstacles_count": 7
+  },
+  "timestamp": "2025-11-29T16:33:26.525259",
+  "player_name": "AI-Medium-YrdChF"
+}

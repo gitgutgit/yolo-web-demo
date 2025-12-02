@@ -1,0 +1,14 @@
+{
+  "session_id": "8hhEMAvO6pXrHlRNAAAB",
+  "mode": "ai",
+  "score": 1,
+  "survival_time": 6.739908218383789,
+  "total_frames": 181,
+  "final_state": {
+    "player_x": 580,
+    "player_y": 670,
+    "obstacles_count": 8
+  },
+  "timestamp": "2025-11-29T16:33:58.338640",
+  "player_name": "AI-Medium-8hhEMA"
+}

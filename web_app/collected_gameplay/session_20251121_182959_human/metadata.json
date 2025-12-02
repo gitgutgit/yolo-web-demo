@@ -1,0 +1,14 @@
+{
+  "session_id": "kWTOca5jR4L4LXfnAAAB",
+  "mode": "human",
+  "score": 5,
+  "survival_time": 12.111841201782227,
+  "total_frames": 323,
+  "final_state": {
+    "player_x": 420,
+    "player_y": 670,
+    "obstacles_count": 12
+  },
+  "timestamp": "2025-11-21T18:29:59.236925",
+  "player_name": "david"
+}

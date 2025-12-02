@@ -1,0 +1,45 @@
+# Google Cloud Build configuration
+steps:
+  # Build the container image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      ["build", "-t", "gcr.io/$PROJECT_ID/distilled-vision-agent:latest", "."]
+
+  # Push the container image to Container Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/distilled-vision-agent:latest"]
+
+  # Deploy container image to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      [
+        "run",
+        "deploy",
+        "distilled-vision-agent",
+        "--image",
+        "gcr.io/$PROJECT_ID/distilled-vision-agent:latest",
+        "--region",
+        "us-central1",
+        "--platform",
+        "managed",
+        "--allow-unauthenticated",
+        "--memory",
+        "1Gi",
+        "--cpu",
+        "1",
+        "--concurrency",
+        "80",
+        "--timeout",
+        "300",
+        "--port",
+        "5000",
+        "--set-env-vars",
+        "ENVIRONMENT=production,GCS_BUCKET_NAME=distilled-vision-game-data",
+      ]
+
+images:
+  - "gcr.io/$PROJECT_ID/distilled-vision-agent:latest"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
