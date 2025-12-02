@@ -6,7 +6,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     curl \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -33,5 +33,5 @@ USER app
 EXPOSE 8080
 ENV PORT=8080
 
-# Run with gunicorn + eventlet for SocketIO
+# Run with gunicorn + eventlet for SocketIO1
 CMD exec gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT --timeout 300 --log-level info app:app
