@@ -29,8 +29,8 @@ RUN useradd --create-home --shell /bin/bash app \
     && chown -R app:app /app
 USER app
 
-# Railway uses PORT env var
-EXPOSE 8080
+# Railway가 PORT 환경변수 제공
+ENV PORT=8080
 
 # Run with gunicorn + eventlet for SocketIO
-CMD ["gunicorn", "--worker-class", "eventlet", "-w", "1", "--bind", "0.0.0.0:8080", "--timeout", "300", "--log-level", "info", "app:app"]
+CMD gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT --timeout 300 --log-level info app:app
