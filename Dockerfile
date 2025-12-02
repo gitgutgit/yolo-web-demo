@@ -1,34 +1,37 @@
-# Dockerfile for GCP Cloud Run Deployment
 FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (OpenCV needs these)
 RUN apt-get update && apt-get install -y \
     gcc \
     curl \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
+# Copy requirements
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Install PyTorch CPU version first (much smaller and faster)
+RUN pip install --no-cache-dir --retries 5 --timeout 300 \
+    torch==2.9.1 torchvision==0.24.1 \
+    --index-url https://download.pytorch.org/whl/cpu
+
+# Install other dependencies
+RUN pip install --no-cache-dir --retries 5 --timeout 300 -r requirements.txt
 
 # Copy application code
 COPY . .
 
-# Create non-root user for security
+# Create non-root user
 RUN useradd --create-home --shell /bin/bash app \
     && chown -R app:app /app
 USER app
 
-# Expose port (Cloud Run provides PORT env var)
+# Railway uses PORT env var
 EXPOSE 8080
 ENV PORT=8080
 
-# Health check (disabled for Cloud Run)
-# HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-#     CMD curl -f http://localhost:${PORT}/health || exit 1
-
-# Run the application with gunicorn + eventlet for SocketIO
+# Run with gunicorn + eventlet for SocketIO
 CMD exec gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT --timeout 300 --log-level info app:app
