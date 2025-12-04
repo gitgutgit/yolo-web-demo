@@ -30,7 +30,7 @@ LAVA_CONFIG = {
     'enabled': True,
     'warning_duration': 3.0,   # Caution 표시 시간 (이때는 닿아도 됨)
     'active_duration': 3.0,    # 실제 용암 지속 시간 (이때 닿으면 데미지)
-    'interval': 10.0,          # 용암 발생 간격 (20초 → 10초로 줄임)
+    'interval': 20.0,          # 용암 발생 간격 (20초 → 10초로 줄임)
     'height': 120,
     'damage_per_frame': 3,
     'zone_width': 320
@@ -139,7 +139,7 @@ class GameCore:
         self.obstacles = [o for o in self.obstacles if o['y'] < HEIGHT]
         
         # Spawn new obstacles
-        if random.random() < 0.08:
+        if random.random() < 0.05:
             # Increase star chance: 10% -> 30%
             obj_type = 'star' if random.random() < 0.3 else 'meteor'
             obj_config = OBJECT_TYPES[obj_type]
